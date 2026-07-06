@@ -1,0 +1,55 @@
+evenza/
+│
+├── config/
+│   ├── db.php
+│   └── config.php
+│
+├── includes/
+│   ├── functions.php
+│   ├── auth_check.php
+│   ├── role_check.php
+│   ├── header.php
+│   └── footer.php
+│
+├── auth/
+│   ├── register.php
+│   ├── login.php
+│   └── logout.php
+│
+├── admin/
+│   ├── dashboard.php
+│   ├── manage_users.php
+│   └── manage_colleges.php
+│
+├── organizer/
+│   ├── dashboard.php
+│   ├── create_event.php
+│   ├── edit_event.php
+│   ├── delete_event.php
+│   ├── view_participants.php
+│   └── verify_pass.php
+│
+├── student/
+│   ├── dashboard.php
+│   ├── browse_events.php
+│   ├── register_event.php
+│   ├── my_registrations.php
+│   └── view_pass.php
+│
+├── public/
+│   ├── index.php
+│   ├── events.php
+│   └── event_details.php
+│
+├── assets/
+│   ├── css/
+│   │   ├── bootstrap.min.css
+│   │   └── style.css
+│   │
+│   ├── js/
+│   │   ├── bootstrap.bundle.min.js
+│   │   └── script.js
+│   │
+│   └── images/
+│
+└── .htaccess (optional for routing/security)
