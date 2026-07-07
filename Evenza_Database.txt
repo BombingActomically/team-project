@@ -1,12 +1,21 @@
+CREATE TABLE universities (
+    university_id INT AUTO_INCREMENT PRIMARY KEY,
+    name VARCHAR(150) NOT NULL,
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+
 CREATE TABLE colleges (
     college_id INT AUTO_INCREMENT PRIMARY KEY,
+    university_id INT,
     name VARCHAR(150) NOT NULL,
     email VARCHAR(100),
     phone VARCHAR(15),
     address TEXT,
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (university_id) REFERENCES universities(university_id) ON DELETE SET NULL
 );
 
 CREATE TABLE users (
@@ -19,6 +28,7 @@ CREATE TABLE users (
     is_active BOOLEAN DEFAULT TRUE,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
     FOREIGN KEY (college_id) REFERENCES colleges(college_id) ON DELETE SET NULL
 );
 
@@ -29,35 +39,19 @@ CREATE TABLE events (
     event_date DATETIME NOT NULL,
     location VARCHAR(150),
     capacity INT,
+
+    event_type ENUM('college_only','university','open') DEFAULT 'college_only',
+
     status ENUM('draft','published','cancelled') DEFAULT 'draft',
+
     college_id INT NOT NULL,
     organizer_id INT NOT NULL,
+
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+
     FOREIGN KEY (college_id) REFERENCES colleges(college_id) ON DELETE CASCADE,
     FOREIGN KEY (organizer_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
-
-CREATE TABLE event_registrations (
-    registration_id INT AUTO_INCREMENT PRIMARY KEY,
-    event_id INT NOT NULL,
-    student_id INT NOT NULL,
-    status ENUM('registered','cancelled','attended') DEFAULT 'registered',
-    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    UNIQUE (event_id, student_id),
-    FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
-    FOREIGN KEY (student_id) REFERENCES users(user_id) ON DELETE CASCADE
-);
-
-CREATE TABLE entry_passes (
-    pass_id INT AUTO_INCREMENT PRIMARY KEY,
-    registration_id INT NOT NULL,
-    pass_code VARCHAR(100) UNIQUE NOT NULL,
-    expires_at DATETIME,
-    is_used BOOLEAN DEFAULT FALSE,
-    used_at DATETIME,
-    issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    FOREIGN KEY (registration_id) REFERENCES event_registrations(registration_id) ON DELETE CASCADE
 );
 
 CREATE TABLE categories (
@@ -69,8 +63,36 @@ CREATE TABLE event_categories (
     event_id INT,
     category_id INT,
     PRIMARY KEY (event_id, category_id),
+
     FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
     FOREIGN KEY (category_id) REFERENCES categories(category_id) ON DELETE CASCADE
+);
+
+CREATE TABLE event_registrations (
+    registration_id INT AUTO_INCREMENT PRIMARY KEY,
+    event_id INT NOT NULL,
+    student_id INT NOT NULL,
+
+    status ENUM('registered','cancelled','attended') DEFAULT 'registered',
+    registration_date TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    UNIQUE (event_id, student_id),
+
+    FOREIGN KEY (event_id) REFERENCES events(event_id) ON DELETE CASCADE,
+    FOREIGN KEY (student_id) REFERENCES users(user_id) ON DELETE CASCADE
+);
+
+CREATE TABLE entry_passes (
+    pass_id INT AUTO_INCREMENT PRIMARY KEY,
+    registration_id INT NOT NULL,
+    pass_code VARCHAR(100) UNIQUE NOT NULL,
+
+    expires_at DATETIME,
+    is_used BOOLEAN DEFAULT FALSE,
+    used_at DATETIME,
+    issued_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+
+    FOREIGN KEY (registration_id) REFERENCES event_registrations(registration_id) ON DELETE CASCADE
 );
 
 CREATE INDEX idx_users_college ON users(college_id);
