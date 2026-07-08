@@ -170,3 +170,4 @@ remove three foreign keys and get them into separate table from event table
 
 (ADMIN PANEL PROFIT)Revenue Model based on event time that organiser keeps the event for
 
+Toggle system for filtering of events to replace instead of IS ACTIVE.
