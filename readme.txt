@@ -155,3 +155,18 @@ Full-Stack Developer (PHP & MERN)
 ## 📄 License
 
 This project is open-source and available for learning and educational purposes.
+------------------------------------------------------------------------------------
+*CHANGES TO MAKE*
+
+ADD STATUS COLUMN IN EVERY TABLE( 1 OR 0 / ACTIVE OR NOT)
+
+ADD SLUG IN COLLEGE TABLE(NICKNAMES)
+
+in event table separate different tables based on Foreign Keys/(incorrect--roles(ADMIN,STUDENTS,ORGANISERS--))
+
+event_type separate to different table. 
+
+remove three foreign keys and get them into separate table from event table
+
+(ADMIN PANEL PROFIT)Revenue Model based on event time that organiser keeps the event for
+
