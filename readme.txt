@@ -12,7 +12,7 @@
 
 * Browse available events
 * Register for events
-* View registered events
+* View registered eventsh
 * Download/View entry passes
 
 ### 🧑‍💼 Organizer
