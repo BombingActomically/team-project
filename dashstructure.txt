@@ -1,0 +1,74 @@
+├── Dashboard
+│
+├── University Management
+│   ├── All Universities
+│   ├── Add University
+│   ├── University Status
+│
+├── College Management
+│   ├── All Colleges
+│   ├── Add College
+│   ├── College Approval
+│   ├── Active / Inactive Colleges
+│
+├── Student Management
+│   ├── All Students
+│   ├── Pending Verification
+│   ├── Verified Students
+│   ├── Rejected Students
+│   ├── Blocked Students
+│
+├── Category Management
+│   ├── Event Categories
+│   ├── Add Category
+│   ├── Active / Inactive Categories
+│
+├── Event Management
+│   ├── All Events
+│   ├── Pending Events
+│   ├── Published Events
+│   ├── Completed Events
+│   ├── Cancelled Events
+│
+├── Registration Management
+│   ├── All Registrations
+│   ├── Solo Registrations
+│   ├── Team Registrations
+│   ├── Pending Approvals
+│   ├── Cancelled Registrations
+│
+├── Team Management
+│   ├── All Teams
+│   ├── Team Members
+│   ├── Team Details
+│
+├── Payment Management
+│   ├── Payment Overview
+│   ├── Successful Payments
+│   ├── Pending Payments
+│   ├── Failed Payments
+│   ├── Transaction Reports
+│
+├── Entry Pass Management
+│   ├── Generated Passes
+│   ├── Used Passes
+│   ├── Unused Passes
+│   ├── Pass Verification
+│
+├── Reports & Analytics
+│   ├── Registration Reports
+│   ├── Revenue Reports
+│   ├── Event Performance
+│   ├── College Participation
+│   ├── Student Statistics
+│
+├── Notifications
+│   ├── Send Notifications
+│   ├── Notification History
+│
+├── Admin Settings
+│   ├── Profile
+│   ├── Change Password
+│   ├── System Settings
+│
+└── Logout
