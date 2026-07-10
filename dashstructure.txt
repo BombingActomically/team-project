@@ -1,17 +1,17 @@
 ├── Dashboard
 │
-├── University Management
+├── University Management [DONE]
 │   ├── All Universities
 │   ├── Add University
 │   ├── University Status
 │
-├── College Management
+├── College Management [DONE]
 │   ├── All Colleges
 │   ├── Add College
 │   ├── College Approval
 │   ├── Active / Inactive Colleges
 │
-├── Student Management
+├── Student Management [DONE]
 │   ├── All Students
 │   ├── Pending Verification
 │   ├── Verified Students
