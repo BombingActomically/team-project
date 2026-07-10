@@ -82,76 +82,106 @@
 
                             <form id="universityForm" class="needs-validation" novalidate>
 
-                                <div class="row">
+                                <div class="row g-4">
+
+                                    <!-- University Info -->
+                                    <div class="col-12">
+                                        <h6 class="text-primary fw-bold border-bottom pb-2">University Details</h6>
+                                    </div>
 
                                     <!-- University Name -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">University Name</label>
-                                        <input type="text" class="form-control" id="name" placeholder="Enter university name" required>
-                                        <div class="invalid-feedback">University name is required</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="name" placeholder="University Name" required>
+                                            <label><i class="ti ti-building me-2"></i>University Name</label>
+                                            <div class="invalid-feedback">Enter university name</div>
+                                        </div>
                                     </div>
 
                                     <!-- Slug -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Slug</label>
-                                        <input type="text" class="form-control" id="slug" placeholder="example-university" required>
-                                        <div class="invalid-feedback">Slug is required</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="slug" placeholder="Slug" required>
+                                            <label><i class="ti ti-link me-2"></i>Slug</label>
+                                            <div class="invalid-feedback">Enter slug</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Contact Info -->
+                                    <div class="col-12">
+                                        <h6 class="text-primary fw-bold border-bottom pb-2">Contact Details</h6>
                                     </div>
 
                                     <!-- Email -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" id="email" placeholder="Enter email" required>
-                                        <div class="invalid-feedback">Valid email is required</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="email" class="form-control" id="email" placeholder="Email" required>
+                                            <label><i class="ti ti-mail me-2"></i>Email</label>
+                                            <div class="invalid-feedback">Enter valid email</div>
+                                        </div>
                                     </div>
 
                                     <!-- Password -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Password</label>
-                                        <input type="password" class="form-control" id="password" placeholder="Enter password" required>
-                                        <div class="invalid-feedback">Password is required</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating position-relative">
+                                            <input type="password" class="form-control" id="password" placeholder="Password" required>
+                                            <label><i class="ti ti-lock me-2"></i>Password</label>
+                                            <div class="invalid-feedback">Enter password</div>
+                                        </div>
                                     </div>
 
                                     <!-- Phone -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Phone</label>
-                                        <input type="text" class="form-control" id="phone" placeholder="Enter phone number" pattern="[0-9]{7,15}" required>
-                                        <div class="invalid-feedback">Enter valid phone number</div>
-                                    </div>
-
-                                    <!-- Address -->
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">Address</label>
-                                        <textarea class="form-control" id="address" rows="3" placeholder="Enter address" required></textarea>
-                                        <div class="invalid-feedback">Address is required</div>
-                                    </div>
-
-                                    <!-- Logo -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Upload Logo</label>
-                                        <input type="file" class="form-control" id="logo" accept="image/png, image/jpeg">
-                                        <div class="invalid-feedback">Only PNG or JPG files allowed</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="text" class="form-control" id="phone" placeholder="Phone" required>
+                                            <label><i class="ti ti-phone me-2"></i>Phone</label>
+                                            <div class="invalid-feedback">Enter valid phone</div>
+                                        </div>
                                     </div>
 
                                     <!-- Status -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Status</label>
-                                        <select class="form-select" id="status" required>
-                                            <option value="">Choose status</option>
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                        </select>
-                                        <div class="invalid-feedback">Please select status</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select class="form-select" id="status" required>
+                                                <option value="">Choose</option>
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                            </select>
+                                            <label><i class="ti ti-toggle-left me-2"></i>Status</label>
+                                            <div class="invalid-feedback">Select status</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Address -->
+                                    <div class="col-12">
+                                        <div class="form-floating">
+                                            <textarea class="form-control" id="address" style="height:100px" placeholder="Address" required></textarea>
+                                            <label><i class="ti ti-map-pin me-2"></i>Address</label>
+                                            <div class="invalid-feedback">Enter address</div>
+                                        </div>
+                                    </div>
+
+                                    <!-- Logo Upload -->
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="ti ti-photo me-2"></i>Upload Logo
+                                        </label>
+                                        <input type="file" class="form-control" id="logo">
                                     </div>
 
                                 </div>
 
                                 <!-- Buttons -->
-                                <div class="text-end mt-3">
-                                    <button type="reset" class="btn btn-light me-2">Reset</button>
-                                    <button type="submit" class="btn btn-primary">
+                                <div class="d-flex justify-content-end mt-4">
+
+                                    <button type="reset" class="btn btn-light me-2 px-4">
+                                        <i class="ti ti-refresh"></i> Reset
+                                    </button>
+
+                                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
                                         <i class="ti ti-device-floppy"></i> Save University
                                     </button>
+
                                 </div>
 
                             </form>
