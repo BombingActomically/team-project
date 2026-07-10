@@ -76,61 +76,86 @@
             </li>
           </ul>
         </li>
-  <!-- Student Management -->
-<li class="pc-item pc-caption">
-    <label>Student Management</label>
-    <i data-feather="users"></i>
-</li>
+        <!-- Category Management -->
+        <!-- Student Management -->
+        <li class="pc-item pc-caption">
+          <label>Student Management</label>
+          <i data-feather="users"></i>
+        </li>
 
-<li class="pc-item pc-hasmenu">
-    <a href="javascript:void(0)" class="pc-link">
-        <span class="pc-micon"><i data-feather="users"></i></span>
-        <span class="pc-mtext">Student</span>
-        <span class="pc-arrow">
-            <i class="ti ti-chevron-right"></i>
-        </span>
-    </a>
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="users"></i></span>
+            <span class="pc-mtext">Student</span>
+            <span class="pc-arrow">
+              <i class="ti ti-chevron-right"></i>
+            </span>
+          </a>
 
-    <ul class="pc-submenu">
+          <ul class="pc-submenu">
 
-        <li class="pc-item">
-            <a href="AllStudents.php" class="pc-link">
+            <li class="pc-item">
+              <a href="AllStudents.php" class="pc-link">
                 All Students
-            </a>
-        </li>
+              </a>
+            </li>
 
-        <li class="pc-item">
-            <a href="AddStudent.php" class="pc-link">
+            <li class="pc-item">
+              <a href="AddStudent.php" class="pc-link">
                 Add Student
-            </a>
-        </li>
+              </a>
+            </li>
 
-        <li class="pc-item">
-            <a href="Pending.php" class="pc-link">
+            <li class="pc-item">
+              <a href="Pending.php" class="pc-link">
                 Pending Verification
-            </a>
-        </li>
+              </a>
+            </li>
 
-        <li class="pc-item">
-            <a href="VerifiedStudents.php" class="pc-link">
+            <li class="pc-item">
+              <a href="VerifiedStudents.php" class="pc-link">
                 Verified Students
-            </a>
-        </li>
+              </a>
+            </li>
 
-        <li class="pc-item">
-            <a href="RejectedStudents.php" class="pc-link">
+            <li class="pc-item">
+              <a href="RejectedStudents.php" class="pc-link">
                 Rejected Students
-            </a>
-        </li>
+              </a>
+            </li>
 
-        <li class="pc-item">
-            <a href="BlockedStudents.php" class="pc-link">
+            <li class="pc-item">
+              <a href="BlockedStudents.php" class="pc-link">
                 Blocked Students
-            </a>
+              </a>
+            </li>
+
+          </ul>
+        </li>
+        <li class="pc-item pc-caption">
+          <label>Category Management</label>
+          <i data-feather="feather"></i>
         </li>
 
-    </ul>
-</li>
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-mtext">Categories</span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
+          </a>
+
+          <ul class="pc-submenu">
+            <li class="pc-item">
+              <a href="event_cat.php" class="pc-link">Event Categories</a>
+            </li>
+            <li class="pc-item">
+              <a href="add_category.php" class="pc-link">Add Category</a>
+            </li>
+            <li class="pc-item">
+              <a href="category_status.php" class="pc-link">Active / Inactive Categories</a>
+            </li>
+          </ul>
+        </li>
         <!-- Auth -->
         <li class="pc-item">
           <a href="login-v1.html" class="pc-link" target="_blank">
