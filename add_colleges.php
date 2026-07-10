@@ -81,81 +81,101 @@
 
                             <form id="collegeForm" class="needs-validation" novalidate>
 
-                                <div class="row">
+                                <div class="row g-4">
 
                                     <!-- College Name -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">College Name</label>
-                                        <input type="text" class="form-control" required>
-                                        <div class="invalid-feedback">College name is required</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="text" id="college_name" class="form-control" placeholder="College Name" required>
+                                            <label><i class="ti ti-building me-2"></i>College Name</label>
+                                            <div class="invalid-feedback">College name is required</div>
+                                        </div>
                                     </div>
 
                                     <!-- Short Name -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Short Name</label>
-                                        <input type="text" class="form-control" required>
-                                        <div class="invalid-feedback">Short name is required</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="text" id="college_short_name" class="form-control" placeholder="Short Name" required>
+                                            <label><i class="ti ti-text-short me-2"></i>Short Name</label>
+                                            <div class="invalid-feedback">Short name is required</div>
+                                        </div>
                                     </div>
 
                                     <!-- University -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">University</label>
-                                        <select class="form-select" required>
-                                            <option value="">Select University</option>
-                                            <option>GTU</option>
-                                            <option>Delhi University</option>
-                                            <option>Mumbai University</option>
-                                        </select>
-                                        <div class="invalid-feedback">Please select university</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select id="university" class="form-select" required>
+                                                <option value="">Choose</option>
+                                                <option>GTU</option>
+                                                <option>Delhi University</option>
+                                                <option>Mumbai University</option>
+                                            </select>
+                                            <label><i class="ti ti-school me-2"></i>University</label>
+                                            <div class="invalid-feedback">Please select university</div>
+                                        </div>
                                     </div>
 
                                     <!-- Email -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Email</label>
-                                        <input type="email" class="form-control" required>
-                                        <div class="invalid-feedback">Valid email is required</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="email" id="college_email" class="form-control" placeholder="Email" required>
+                                            <label><i class="ti ti-mail me-2"></i>Email</label>
+                                            <div class="invalid-feedback">Valid email is required</div>
+                                        </div>
                                     </div>
 
                                     <!-- Phone -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Phone</label>
-                                        <input type="text" class="form-control" pattern="[0-9]{7,15}" required>
-                                        <div class="invalid-feedback">Enter valid phone number</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <input type="text" id="college_phone" class="form-control" placeholder="Phone" required>
+                                            <label><i class="ti ti-phone me-2"></i>Phone</label>
+                                            <div class="invalid-feedback">Enter valid phone</div>
+                                        </div>
                                     </div>
 
                                     <!-- Address -->
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">Address</label>
-                                        <textarea class="form-control" rows="3" required></textarea>
-                                        <div class="invalid-feedback">Address is required</div>
+                                    <div class="col-12">
+                                        <div class="form-floating">
+                                            <textarea id="college_address" class="form-control" style="height:100px" required></textarea>
+                                            <label><i class="ti ti-map-pin me-2"></i>Address</label>
+                                            <div class="invalid-feedback">Address is required</div>
+                                        </div>
                                     </div>
 
                                     <!-- Logo -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Upload Logo</label>
-                                        <input type="file" class="form-control" id="collegeLogo" accept="image/png, image/jpeg">
-                                        <div class="invalid-feedback">Only JPG/PNG allowed</div>
+                                    <div class="col-md-6">
+                                        <label class="form-label fw-semibold">
+                                            <i class="ti ti-photo me-2"></i>Upload Logo
+                                        </label>
+                                        <input type="file" id="collegeLogo" class="form-control" accept="image/png, image/jpeg">
                                     </div>
 
                                     <!-- Status -->
-                                    <div class="col-md-6 mb-3">
-                                        <label class="form-label">Status</label>
-                                        <select class="form-select" required>
-                                            <option value="">Choose status</option>
-                                            <option>Active</option>
-                                            <option>Inactive</option>
-                                        </select>
-                                        <div class="invalid-feedback">Select status</div>
+                                    <div class="col-md-6">
+                                        <div class="form-floating">
+                                            <select id="college_status" class="form-select" required>
+                                                <option value="">Choose</option>
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                            </select>
+                                            <label><i class="ti ti-toggle-left me-2"></i>Status</label>
+                                            <div class="invalid-feedback">Select status</div>
+                                        </div>
                                     </div>
 
                                 </div>
 
                                 <!-- Buttons -->
-                                <div class="text-end mt-3">
-                                    <button type="reset" class="btn btn-light me-2">Reset</button>
-                                    <button type="submit" class="btn btn-primary">
-                                        Save College
+                                <div class="d-flex justify-content-end mt-4">
+
+                                    <button type="reset" class="btn btn-light px-4 me-2">
+                                        <i class="ti ti-refresh"></i> Reset
                                     </button>
+
+                                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                                        <i class="ti ti-device-floppy"></i> Save College
+                                    </button>
+
                                 </div>
 
                             </form>
