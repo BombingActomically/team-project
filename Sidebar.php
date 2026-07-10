@@ -4,7 +4,7 @@
     <!-- Logo -->
     <div class="m-header flex items-center py-4 px-6 h-header-height">
       <a href="Index.php" class="b-brand flex items-center gap-3">
-        <img src="assets/images/logo-white.svg" class="img-fluid logo logo-lg" alt="logo" />
+        <img src="assets/images/logo-white.svg" alt="logo" />
         <img src="assets/images/favicon.svg" class="img-fluid logo logo-sm" alt="logo" />
       </a>
     </div>
@@ -76,7 +76,61 @@
             </li>
           </ul>
         </li>
+  <!-- Student Management -->
+<li class="pc-item pc-caption">
+    <label>Student Management</label>
+    <i data-feather="users"></i>
+</li>
 
+<li class="pc-item pc-hasmenu">
+    <a href="javascript:void(0)" class="pc-link">
+        <span class="pc-micon"><i data-feather="users"></i></span>
+        <span class="pc-mtext">Student</span>
+        <span class="pc-arrow">
+            <i class="ti ti-chevron-right"></i>
+        </span>
+    </a>
+
+    <ul class="pc-submenu">
+
+        <li class="pc-item">
+            <a href="AllStudents.php" class="pc-link">
+                All Students
+            </a>
+        </li>
+
+        <li class="pc-item">
+            <a href="AddStudent.php" class="pc-link">
+                Add Student
+            </a>
+        </li>
+
+        <li class="pc-item">
+            <a href="Pending.php" class="pc-link">
+                Pending Verification
+            </a>
+        </li>
+
+        <li class="pc-item">
+            <a href="VerifiedStudents.php" class="pc-link">
+                Verified Students
+            </a>
+        </li>
+
+        <li class="pc-item">
+            <a href="RejectedStudents.php" class="pc-link">
+                Rejected Students
+            </a>
+        </li>
+
+        <li class="pc-item">
+            <a href="BlockedStudents.php" class="pc-link">
+                Blocked Students
+            </a>
+        </li>
+
+    </ul>
+</li>
         <!-- Auth -->
         <li class="pc-item">
           <a href="login-v1.html" class="pc-link" target="_blank">
