@@ -82,34 +82,47 @@
 
                             <form id="categoryForm" class="needs-validation" novalidate>
 
-                                <div class="row">
+                                <div class="row g-4">
 
                                     <!-- Category Name -->
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">Category Name</label>
-                                        <input type="text" name="name" class="form-control" required>
-                                        <div class="invalid-feedback">Category name is required</div>
+                                    <div class="col-12">
+                                        <div class="form-floating">
+                                            <input type="text" name="name" class="form-control" id="categoryName" placeholder="Category Name" required>
+                                            <label>
+                                                <i class="ti ti-category me-2"></i>Category Name
+                                            </label>
+                                            <div class="invalid-feedback">Category name is required</div>
+                                        </div>
                                     </div>
 
                                     <!-- Status -->
-                                    <div class="col-12 mb-3">
-                                        <label class="form-label">Status</label>
-                                        <select name="status" class="form-select" required>
-                                            <option value="">Choose status</option>
-                                            <option value="active">Active</option>
-                                            <option value="inactive">Inactive</option>
-                                        </select>
-                                        <div class="invalid-feedback">Select status</div>
+                                    <div class="col-12">
+                                        <div class="form-floating">
+                                            <select name="status" class="form-select" id="categoryStatus" required>
+                                                <option value="">Choose</option>
+                                                <option value="active">Active</option>
+                                                <option value="inactive">Inactive</option>
+                                            </select>
+                                            <label>
+                                                <i class="ti ti-toggle-left me-2"></i>Status
+                                            </label>
+                                            <div class="invalid-feedback">Select status</div>
+                                        </div>
                                     </div>
 
                                 </div>
 
                                 <!-- Buttons -->
-                                <div class="text-end mt-3">
-                                    <button type="reset" class="btn btn-light me-2">Reset</button>
-                                    <button type="submit" class="btn btn-primary">
-                                        Save Category
+                                <div class="d-flex justify-content-end mt-4">
+
+                                    <button type="reset" class="btn btn-light px-4 me-2">
+                                        <i class="ti ti-refresh"></i> Reset
                                     </button>
+
+                                    <button type="submit" class="btn btn-primary px-4 shadow-sm">
+                                        <i class="ti ti-device-floppy"></i> Save Category
+                                    </button>
+
                                 </div>
 
                             </form>
