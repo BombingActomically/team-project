@@ -3,7 +3,7 @@
 
     <!-- Logo -->
     <div class="m-header flex items-center py-4 px-6 h-header-height">
-      <a href="Index.php" class="b-brand flex items-center gap-3">
+      <a href="Dashboard.php" class="b-brand flex items-center gap-3">
         <img src="assets/images/logo-white.svg" alt="logo" />
         <img src="assets/images/favicon.svg" class="img-fluid logo logo-sm" alt="logo" />
       </a>
@@ -19,7 +19,7 @@
         </li>
 
         <li class="pc-item">
-          <a href="Index.php" class="pc-link">
+          <a href="Dashboard.php" class="pc-link">
             <span class="pc-micon"><i data-feather="home"></i></span>
             <span class="pc-mtext">Dashboard</span>
           </a>
