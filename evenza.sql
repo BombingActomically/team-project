@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1:3306
--- Generation Time: Jul 11, 2026 at 08:25 AM
+-- Generation Time: Jul 11, 2026 at 08:56 AM
 -- Server version: 8.4.7
 -- PHP Version: 8.3.28
 
@@ -36,14 +36,17 @@ CREATE TABLE IF NOT EXISTS `admins` (
   `created_at` timestamp NULL DEFAULT CURRENT_TIMESTAMP,
   PRIMARY KEY (`admin_id`),
   UNIQUE KEY `email` (`email`)
-) ENGINE=MyISAM AUTO_INCREMENT=2 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+) ENGINE=MyISAM AUTO_INCREMENT=5 DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 --
 -- Dumping data for table `admins`
 --
 
 INSERT INTO `admins` (`admin_id`, `email`, `password`, `status`, `created_at`) VALUES
-(1, 'darshan@gmail.com', 'darshan123', 'active', '2026-07-11 07:06:07');
+(1, 'darshan@gmail.com', 'darshan123', 'active', '2026-07-11 07:06:07'),
+(2, 'krish@gmail.com', 'krish123', 'active', '2026-07-11 08:56:25'),
+(3, 'karan@gmail.com', 'karan123', 'active', '2026-07-11 08:56:25'),
+(4, 'devashish@gmail.com', 'devashish123', 'active', '2026-07-11 08:56:25');
 
 -- --------------------------------------------------------
 
