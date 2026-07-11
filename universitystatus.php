@@ -1,3 +1,4 @@
+<?php include 'auth_check.php'; ?>
 <!doctype html>
 <html lang="en" data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" dir="ltr" data-pc-theme="light">
 <!-- [Head] start -->
