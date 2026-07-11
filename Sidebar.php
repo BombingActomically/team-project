@@ -157,6 +157,37 @@
           </ul>
         </li>
         <!-- Auth -->
+        <li class="pc-item pc-caption">
+          <label>Event Management</label>
+          <i data-feather="feather"></i>
+        </li>
+
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-mtext">Event Categories</span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
+          </a>
+
+          <ul class="pc-submenu">
+            <li class="pc-item">
+              <a href="all_events.php" class="pc-link">All Events</a>
+            </li>
+            <li class="pc-item">
+              <a href="pending_events.php" class="pc-link">Pending Events</a>
+            </li>
+            <li class="pc-item">
+              <a href="published_events.php" class="pc-link">Published Events</a>
+            </li>
+            <li class="pc-item">
+              <a href="completed_events.php" class="pc-link">Completed Events</a>
+            </li>
+            <li class="pc-item">
+              <a href="cancelled_events.php" class="pc-link">Cancelled Events</a>
+            </li>
+          </ul>
+        </li>
+        <!-- Auth -->
         <li class="pc-item">
           <a href="login-v1.html" class="pc-link" target="_blank">
             <span class="pc-micon"><i data-feather="lock"></i></span>
