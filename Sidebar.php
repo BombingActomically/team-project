@@ -284,6 +284,40 @@
           </ul>
         </li>
 
+
+        <!-- Auth -->
+        <li class="pc-item pc-caption">
+          <label>Payment Management</label>
+          <i data-feather="feather"></i>
+        </li>
+
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-mtext">Payments</span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
+          </a>
+
+          <ul class="pc-submenu">
+            <li class="pc-item">
+              <a href="payment_overview.php" class="pc-link">Payment Overview</a>
+            </li>
+            <li class="pc-item">
+              <a href="successful_payments.php" class="pc-link">Successful Payments</a>
+            </li>
+            <li class="pc-item">
+              <a href="pending_payments.php" class="pc-link">Pending Payments</a>
+            </li>
+            <li class="pc-item">
+              <a href="failed_payments.php" class="pc-link">Failed Payments</a>
+            </li>
+            <li class="pc-item">
+              <a href="transaction_reports.php" class="pc-link">Transaction Reports</a>
+            </li>
+          </ul>          
+        </li>
+
+
         <!-- Auth -->
         <li class="pc-item">
           <a href="login-v1.html" class="pc-link" target="_blank">
