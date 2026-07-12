@@ -240,6 +240,50 @@
             </li>
           </ul>
         </li>
+        <li class="pc-item pc-caption">
+          <label>Notifications</label>
+          <i data-feather="feather"></i>
+        </li>
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-mtext">Notification Settings</span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
+          </a>
+
+          <ul class="pc-submenu">
+            <li class="pc-item">
+              <a href="send_notifications.php" class="pc-link">Send Notifications</a>
+            </li>
+            <li class="pc-item">
+              <a href="notification_history.php" class="pc-link">Notification History</a>
+            </li>
+          </ul>
+        </li>
+        <li class="pc-item pc-caption">
+          <label>Admin Settings</label>
+          <i data-feather="feather"></i>
+        </li>
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-mtext">Admin Settings</span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
+          </a>
+
+          <ul class="pc-submenu">
+            <li class="pc-item">
+              <a href="profile.php" class="pc-link">Profile</a>
+            </li>
+            <li class="pc-item">
+              <a href="change_password.php" class="pc-link">Change Password</a>
+            </li>
+            <li class="pc-item">
+              <a href="system_settings.php" class="pc-link">System Settings</a>
+            </li>
+          </ul>
+        </li>
+
         <!-- Auth -->
         <li class="pc-item">
           <a href="login-v1.html" class="pc-link" target="_blank">
