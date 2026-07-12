@@ -3,7 +3,7 @@
 
     <!-- Logo -->
     <div class="m-header flex items-center py-4 px-6 h-header-height">
-      <a href="Dashboard.php" class="b-brand flex items-center gap-3">
+      <a href="Index.php" class="b-brand flex items-center gap-3">
         <img src="assets/images/logo-white.svg" alt="logo" />
         <img src="assets/images/favicon.svg" class="img-fluid logo logo-sm" alt="logo" />
       </a>
@@ -187,6 +187,59 @@
             </li>
           </ul>
         </li>
+        <li class="pc-item pc-caption">
+          <label>Registration Management</label>
+          <i data-feather="feather"></i>
+        </li>
+
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-mtext">Registration Category</span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
+          </a>
+
+          <ul class="pc-submenu">
+            <li class="pc-item">
+              <a href="allregistrations.php" class="pc-link">All Registrations</a>
+            </li>
+            <li class="pc-item">
+              <a href="soloregistrations.php" class="pc-link">Solo Registrations</a>
+            </li>
+            <li class="pc-item">
+              <a href="teamregistrations.php" class="pc-link">Team Registrations</a>
+            </li>
+            <li class="pc-item">
+              <a href="pendingregistrations.php" class="pc-link">Pending Approvals</a>
+            </li>
+            <li class="pc-item">
+              <a href="cancelledregistrations.php" class="pc-link">Cancelled Registration</a>
+            </li>
+          </ul>
+        </li>
+        <li class="pc-item pc-caption">
+          <label>Team Management</label>
+          <i data-feather="feather"></i>
+        </li>
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-mtext">Team Category</span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
+          </a>
+
+          <ul class="pc-submenu">
+            <li class="pc-item">
+              <a href="allteams.php" class="pc-link">All Teams</a>
+            </li>
+            <li class="pc-item">
+              <a href="teammembers.php" class="pc-link">Team Members</a>
+            </li>
+            <li class="pc-item">
+              <a href="teamdetails.php" class="pc-link">Team Details</a>
+            </li>
+          </ul>
+        </li>
         <!-- Auth -->
         <li class="pc-item">
           <a href="login-v1.html" class="pc-link" target="_blank">
@@ -201,7 +254,7 @@
             <span class="pc-mtext">Register</span>
           </a>
         </li>
-
+        
         <!-- Other -->
         <li class="pc-item pc-caption">
           <label>Other</label>
