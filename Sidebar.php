@@ -26,10 +26,6 @@
         </li>
 
         <!-- University -->
-        <li class="pc-item pc-caption">
-          <label>University Management</label>
-          <i data-feather="feather"></i>
-        </li>
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
@@ -52,10 +48,6 @@
         </li>
 
         <!-- College -->
-        <li class="pc-item pc-caption">
-          <label>College Management</label>
-          <i data-feather="feather"></i>
-        </li>
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
@@ -76,12 +68,9 @@
             </li>
           </ul>
         </li>
-        <!-- Category Management -->
+        
         <!-- Student Management -->
-        <li class="pc-item pc-caption">
-          <label>Student Management</label>
-          <i data-feather="users"></i>
-        </li>
+        
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
@@ -132,10 +121,8 @@
 
           </ul>
         </li>
-        <li class="pc-item pc-caption">
-          <label>Category Management</label>
-          <i data-feather="feather"></i>
-        </li>
+        
+        <!-- Category Management -->
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
@@ -157,10 +144,9 @@
           </ul>
         </li>
         <!-- Auth -->
-        <li class="pc-item pc-caption">
-          <label>Event Management</label>
-          <i data-feather="feather"></i>
-        </li>
+        
+
+        <!-- Event Categories -->
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
@@ -187,10 +173,8 @@
             </li>
           </ul>
         </li>
-        <li class="pc-item pc-caption">
-          <label>Registration Management</label>
-          <i data-feather="feather"></i>
-        </li>
+        
+        <!-- Registration Category -->
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
@@ -217,10 +201,11 @@
             </li>
           </ul>
         </li>
-        <li class="pc-item pc-caption">
-          <label>Team Management</label>
-          <i data-feather="feather"></i>
-        </li>
+    
+
+        <!-- Team Category -->
+
+
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="grid"></i></span>
@@ -240,10 +225,11 @@
             </li>
           </ul>
         </li>
-        <li class="pc-item pc-caption">
-          <label>Notifications</label>
-          <i data-feather="feather"></i>
-        </li>
+
+
+        <!-- Notifications -->
+        
+
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="grid"></i></span>
@@ -260,10 +246,10 @@
             </li>
           </ul>
         </li>
-        <li class="pc-item pc-caption">
-          <label>Admin Settings</label>
-          <i data-feather="feather"></i>
-        </li>
+
+        <!-- Admin Settings -->
+        
+        
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="grid"></i></span>
@@ -284,12 +270,36 @@
           </ul>
         </li>
 
+        <!--Auth-->
 
-        <!-- Auth -->
-        <li class="pc-item pc-caption">
-          <label>Payment Management</label>
-          <i data-feather="feather"></i>
+        <!-- Entry Pass Management -->
+        
+
+        <li class="pc-item pc-hasmenu">
+          <a href="javascript:void(0)" class="pc-link">
+            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-mtext">Entry-Passes</span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
+          </a>
+
+          <ul class="pc-submenu">
+            <li class="pc-item">
+              <a href="generated_passes.php" class="pc-link">Generated Passes</a>
+            </li>
+            <li class="pc-item">
+              <a href="used_passes.php" class="pc-link">Used Passes</a>
+            </li>
+            <li class="pc-item">
+              <a href="unused_passes.php" class="pc-link">Unused Passes</a>
+            </li>
+            <li class="pc-item">
+              <a href="pass_verification.php" class="pc-link">Pass Verification</a>
+            </li>
+          </ul>          
         </li>
+
+        <!-- Payment Management -->
+        
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
