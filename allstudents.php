@@ -82,12 +82,12 @@
                 <div class="col-md-2">
                     <select class="form-select" id="statusFilter">
                         <option value="">All Status</option>
-                        <option>Pending</option>
-                        <option>Verified</option>
-                        <option>Rejected</option>
-                        <option>Active</option>
-                        <option>Inactive</option>
-                        <option>Blocked</option>
+                        <option value="pending">Pending</option>
+                        <option value="verified">Verified</option>
+                        <option value="rejected">Rejected</option>
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="blocked">Blocked</option>
                     </select>
                 </div>
 
@@ -130,7 +130,7 @@
                     </tr>
                     </thead>
 
-                    <tbody>
+                    <tbody id="studentTable">
 
                     <!-- Dummy Data -->
 
@@ -251,6 +251,25 @@ layout_caption_change('true');
 layout_rtl_change('false');
 preset_change('preset-1');
 main_layout_change('vertical');
+</script>
+
+
+<script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+<script>
+function loadStudents(){
+ $.ajax({
+  url:'fetch_students.php',
+  type:'POST',
+  data:{search:$('#searchStudent').val(),status:$('#statusFilter').val()},
+  beforeSend:function(){$('#studentTable').html('<tr><td colspan="9" class="text-center">Loading...</td></tr>');},
+  success:function(r){$('#studentTable').html(r);}
+ });
+}
+$(function(){
+ $('#searchStudent').on('keyup',loadStudents);
+ $('#statusFilter').on('change',loadStudents);
+ loadStudents();
+});
 </script>
 
 </body>
