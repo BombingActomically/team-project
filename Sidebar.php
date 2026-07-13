@@ -14,9 +14,7 @@
       <ul class="pc-navbar">
 
         <!-- Navigation -->
-        <li class="pc-item pc-caption">
-          <label>Navigation</label>
-        </li>
+        
 
         <li class="pc-item">
           <a href="Dashboard.php" class="pc-link">
