@@ -48,7 +48,7 @@
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="home"></i></span>
+            <span class="pc-micon"><i data-feather="monitor"></i></span>
             <span class="pc-mtext">College</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
@@ -144,7 +144,7 @@
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-micon"><i data-feather="calendar"></i></span>
             <span class="pc-mtext">Event Categories</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
@@ -172,7 +172,7 @@
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-micon"><i data-feather="user-plus"></i></span>
             <span class="pc-mtext">Registration Category</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
@@ -202,7 +202,7 @@
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-micon"><i data-feather="layers"></i></span>
             <span class="pc-mtext">Team Category</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
@@ -226,7 +226,7 @@
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-micon"><i data-feather="bell"></i></span>
             <span class="pc-mtext">Notification Settings</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
@@ -246,7 +246,7 @@
         
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-micon"><i data-feather="settings"></i></span>
             <span class="pc-mtext">Admin Settings</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
@@ -271,7 +271,7 @@
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-micon"><i data-feather="smartphone"></i></span>
             <span class="pc-mtext">Entry-Passes</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
@@ -297,7 +297,7 @@
 
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="grid"></i></span>
+            <span class="pc-micon"><i data-feather="trending-up"></i></span>
             <span class="pc-mtext">Payments</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
@@ -319,58 +319,6 @@
               <a href="transaction_reports.php" class="pc-link">Transaction Reports</a>
             </li>
           </ul>          
-        </li>
-
-
-        <!-- Auth -->
-        <li class="pc-item">
-          <a href="login-v1.html" class="pc-link" target="_blank">
-            <span class="pc-micon"><i data-feather="lock"></i></span>
-            <span class="pc-mtext">Login</span>
-          </a>
-        </li>
-
-        <li class="pc-item">
-          <a href="register-v1.html" class="pc-link" target="_blank">
-            <span class="pc-micon"><i data-feather="user-plus"></i></span>
-            <span class="pc-mtext">Register</span>
-          </a>
-        </li>
-        
-        <!-- Other -->
-        <li class="pc-item pc-caption">
-          <label>Other</label>
-          <i data-feather="sidebar"></i>
-        </li>
-
-        <li class="pc-item pc-hasmenu">
-          <a href="javascript:void(0)" class="pc-link">
-            <span class="pc-micon"><i data-feather="align-right"></i></span>
-            <span class="pc-mtext">Menu Levels</span>
-            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
-          </a>
-
-          <ul class="pc-submenu">
-            <li class="pc-item"><a class="pc-link" href="javascript:void(0)">Level 2.1</a></li>
-
-            <li class="pc-item pc-hasmenu">
-              <a href="javascript:void(0)" class="pc-link">
-                Level 2.2 <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
-              </a>
-              <ul class="pc-submenu">
-                <li class="pc-item"><a class="pc-link" href="javascript:void(0)">Level 3.1</a></li>
-                <li class="pc-item"><a class="pc-link" href="javascript:void(0)">Level 3.2</a></li>
-              </ul>
-            </li>
-          </ul>
-        </li>
-
-        <!-- Sample -->
-        <li class="pc-item">
-          <a href="../other/sample-page.html" class="pc-link">
-            <span class="pc-micon"><i data-feather="sidebar"></i></span>
-            <span class="pc-mtext">Sample Page</span>
-          </a>
         </li>
 
       </ul>
