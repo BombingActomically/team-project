@@ -54,9 +54,6 @@
             <li class="pc-item">
               <a href="Colleges.php" class="pc-link">All College</a>
             </li>
-            <li class="pc-item">
-              <a href="add_colleges.php" class="pc-link">Add College</a>
-            </li>
           </ul>
         </li>
         
@@ -77,12 +74,6 @@
             <li class="pc-item">
               <a href="AllStudents.php" class="pc-link">
                 All Students
-              </a>
-            </li>
-
-            <li class="pc-item">
-              <a href="AddStudent.php" class="pc-link">
-                Add Student
               </a>
             </li>
           </ul>
