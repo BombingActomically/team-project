@@ -831,7 +831,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
                 this.disabled = true;
 
-                fetch("universities.php?action=toggle_status", {
+                fetch("alluniversity.php?action=toggle_status", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ id: universityId, status: isActive ? "active" : "inactive" })
