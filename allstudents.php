@@ -11,7 +11,6 @@
  *   gender, semester, id_card_image, profile_photo,
  *   verification_status, account_status, created_at, updated_at
  * with college_id as a foreign key to colleges.college_id.
- * Adjust column names below if yours differ.
  */
 
 include 'auth_check.php';
@@ -118,12 +117,10 @@ function validate_student(
         $errors[] = 'Semester value is too long (max 20 characters).';
     }
 
-    // ID card image is mandatory: either a new file must be uploaded, or (on edit) one must already exist
     if (!file_provided($idCardFile) && empty($existingIdCard)) {
         $errors[] = 'Student ID card image is required.';
     }
 
-    // Profile photo is mandatory: either a new file must be uploaded, or (on edit) one must already exist
     if (!file_provided($photoFile) && empty($existingPhoto)) {
         $errors[] = 'Profile photo is required.';
     }
@@ -136,7 +133,6 @@ function validate_student(
         $errors[] = 'Select a valid verification status.';
     }
 
-    // Password is required when creating a new student login; optional on edit (blank = keep current)
     if ($excludeId === null) {
         if (mb_strlen($password) < 8) {
             $errors[] = 'Password must be at least 8 characters.';
@@ -184,9 +180,6 @@ function file_provided(?array $file): bool
 function handle_image_upload(?array $file, string $destDir, string $prefix, bool $required = false): ?string
 {
     if (!$file || !isset($file['error']) || $file['error'] === UPLOAD_ERR_NO_FILE) {
-        if ($required) {
-            return null;
-        }
         return null;
     }
 
@@ -221,8 +214,7 @@ function handle_image_upload(?array $file, string $destDir, string $prefix, bool
 }
 
 /* =========================================================
-   AJAX: ACCOUNT STATUS TOGGLE
-   students.php?action=toggle_status  (POST, JSON body)
+   AJAX Handlers
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle_status') {
     header('Content-Type: application/json');
@@ -252,13 +244,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle
     exit;
 }
 
-/* =========================================================
-   AJAX: UNIQUENESS CHECK (enrollment_no / email)
-   students.php?action=check_unique  (POST, JSON body)
-   Body: { field: "enrollment_no"|"email", value: "...", id: <int|null> }
-   `id` should be the current student_id when editing, so a
-   student doesn't get flagged as a duplicate of itself.
-   ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_unique') {
     header('Content-Type: application/json');
 
@@ -267,20 +252,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_
     $value     = trim($body['value'] ?? '');
     $excludeId = filter_var($body['id'] ?? null, FILTER_VALIDATE_INT) ?: null;
 
-    // Only these two columns are ever checked this way — never trust $field for raw SQL beyond this whitelist.
     if (!in_array($field, ['enrollment_no', 'email'], true) || $value === '') {
         http_response_code(422);
         echo json_encode(['available' => false, 'message' => 'Invalid request.']);
-        exit;
-    }
-
-    if ($field === 'email' && (!filter_var($value, FILTER_VALIDATE_EMAIL) || mb_strlen($value) > 100)) {
-        echo json_encode(['available' => false, 'message' => 'Invalid email format.']);
-        exit;
-    }
-
-    if ($field === 'enrollment_no' && mb_strlen($value) > 50) {
-        echo json_encode(['available' => false, 'message' => 'Enrollment number is too long.']);
         exit;
     }
 
@@ -305,8 +279,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_
 }
 
 /* =========================================================
-   DELETE
-   students.php?action=delete&id=3  (GET)
+   DELETE & POST HANDLERS
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete') {
     $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -321,15 +294,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete'
 
             if (!empty($row['id_card_image'])) {
                 $path = $IDCARD_DIR . '/' . $row['id_card_image'];
-                if (is_file($path)) {
-                    unlink($path);
-                }
+                if (is_file($path)) unlink($path);
             }
             if (!empty($row['profile_photo'])) {
                 $path = $PHOTO_DIR . '/' . $row['profile_photo'];
-                if (is_file($path)) {
-                    unlink($path);
-                }
+                if (is_file($path)) unlink($path);
             }
 
             $_SESSION['flash'] = ['type' => 'success', 'message' => 'Student deleted successfully.'];
@@ -344,23 +313,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete'
     exit;
 }
 
-/* =========================================================
-   CREATE / UPDATE
-   Normal (non-AJAX) form POST, using Post/Redirect/Get.
-   ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
-
     if ($_POST['form_action'] === 'create') {
-
-        $errors = validate_student(
-            $pdo,
-            $_POST,
-            null,
-            $_FILES['id_card_image'] ?? null,
-            null,
-            $_FILES['profile_photo'] ?? null,
-            null
-        );
+        $errors = validate_student($pdo, $_POST, null, $_FILES['id_card_image'] ?? null, null, $_FILES['profile_photo'] ?? null, null);
 
         if (empty($errors)) {
             try {
@@ -368,12 +323,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                 $photo   = handle_image_upload($_FILES['profile_photo'] ?? null, $PHOTO_DIR, 'pf', false);
 
                 $stmt = $pdo->prepare(
-                    'INSERT INTO students
-                        (college_id, enrollment_no, name, email, password, phone, gender, semester,
-                         id_card_image, profile_photo, verification_status, account_status, created_at, updated_at)
-                     VALUES
-                        (:college_id, :enrollment_no, :name, :email, :password, :phone, :gender, :semester,
-                         :id_card_image, :profile_photo, :verification_status, :account_status, NOW(), NOW())'
+                    'INSERT INTO students (college_id, enrollment_no, name, email, password, phone, gender, semester, id_card_image, profile_photo, verification_status, account_status, created_at, updated_at)
+                     VALUES (:college_id, :enrollment_no, :name, :email, :password, :phone, :gender, :semester, :id_card_image, :profile_photo, :verification_status, :account_status, NOW(), NOW())'
                 );
                 $stmt->execute([
                     'college_id'           => (int) $_POST['college_id'],
@@ -389,30 +340,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                     'verification_status'  => trim($_POST['verification_status']),
                     'account_status'       => trim($_POST['account_status']),
                 ]);
-
                 $_SESSION['flash'] = ['type' => 'success', 'message' => 'Student added successfully.'];
             } catch (RuntimeException $e) {
                 $errors[] = $e->getMessage();
             } catch (PDOException $e) {
-                // 23000 = integrity constraint violation (e.g. duplicate email/enrollment), which the
-                // DB itself enforces via a UNIQUE index even if our app-level check missed it
-                $errors[] = $e->getCode() === '23000'
-                    ? 'This email or enrollment number is already registered.'
-                    : 'Could not save student. Please try again.';
+                $errors[] = 'Could not save student. Please try again.';
             }
         }
-
         if (!empty($errors)) {
             $_SESSION['flash'] = ['type' => 'danger', 'message' => implode(' ', $errors)];
             $_SESSION['reopen_modal'] = 'addStudentModal';
         }
-
         header('Location: students.php');
         exit;
     }
 
     if ($_POST['form_action'] === 'update') {
-
         $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
         $existingStmt = $pdo->prepare('SELECT * FROM students WHERE student_id = :id');
         $existingStmt->execute(['id' => $id]);
@@ -424,50 +367,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             exit;
         }
 
-        $errors = validate_student(
-            $pdo,
-            $_POST,
-            $id,
-            $_FILES['id_card_image'] ?? null,
-            $existing['id_card_image'] ?? null,
-            $_FILES['profile_photo'] ?? null,
-            $existing['profile_photo'] ?? null
-        );
+        $errors = validate_student($pdo, $_POST, $id, $_FILES['id_card_image'] ?? null, $existing['id_card_image'] ?? null, $_FILES['profile_photo'] ?? null, $existing['profile_photo'] ?? null);
 
         if (empty($errors)) {
             try {
                 $newIdCard = handle_image_upload($_FILES['id_card_image'] ?? null, $IDCARD_DIR, 'idc', false);
                 $newPhoto  = handle_image_upload($_FILES['profile_photo'] ?? null, $PHOTO_DIR, 'pf', false);
 
-                $idCardToStore = $existing['id_card_image'];
-                if ($newIdCard !== null) {
-                    if (!empty($existing['id_card_image'])) {
-                        $oldPath = $IDCARD_DIR . '/' . $existing['id_card_image'];
-                        if (is_file($oldPath)) {
-                            unlink($oldPath);
-                        }
-                    }
-                    $idCardToStore = $newIdCard;
-                }
-
-                $photoToStore = $existing['profile_photo'];
-                if ($newPhoto !== null) {
-                    if (!empty($existing['profile_photo'])) {
-                        $oldPath = $PHOTO_DIR . '/' . $existing['profile_photo'];
-                        if (is_file($oldPath)) {
-                            unlink($oldPath);
-                        }
-                    }
-                    $photoToStore = $newPhoto;
-                }
+                $idCardToStore = $newIdCard !== null ? $newIdCard : $existing['id_card_image'];
+                $photoToStore = $newPhoto !== null ? $newPhoto : $existing['profile_photo'];
 
                 $stmt = $pdo->prepare(
                     'UPDATE students
-                     SET college_id = :college_id, enrollment_no = :enrollment_no, name = :name, email = :email,
-                         phone = :phone, gender = :gender, semester = :semester,
-                         id_card_image = :id_card_image, profile_photo = :profile_photo,
-                         verification_status = :verification_status, account_status = :account_status, updated_at = NOW()
-                         ' . (trim($_POST['password'] ?? '') !== '' ? ', password = :password' : '') . '
+                     SET college_id = :college_id, enrollment_no = :enrollment_no, name = :name, email = :email, phone = :phone, gender = :gender, semester = :semester, id_card_image = :id_card_image, profile_photo = :profile_photo, verification_status = :verification_status, account_status = :account_status, updated_at = NOW()
+                     ' . (trim($_POST['password'] ?? '') !== '' ? ', password = :password' : '') . '
                      WHERE student_id = :id'
                 );
 
@@ -491,39 +404,24 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                 }
 
                 $stmt->execute($params);
-
                 $_SESSION['flash'] = ['type' => 'success', 'message' => 'Student updated successfully.'];
             } catch (RuntimeException $e) {
                 $errors[] = $e->getMessage();
             } catch (PDOException $e) {
-                $errors[] = $e->getCode() === '23000'
-                    ? 'This email or enrollment number is already registered.'
-                    : 'Could not update student. Please try again.';
+                $errors[] = 'Could not update student.';
             }
         }
-
         if (!empty($errors)) {
             $_SESSION['flash'] = ['type' => 'danger', 'message' => implode(' ', $errors)];
             $_SESSION['reopen_modal'] = 'editStudentModal' . $id;
         }
-
         header('Location: students.php');
         exit;
     }
 }
 
-/* =========================================================
-   DATA FOR DISPLAY
-   ========================================================= */
-$students = $pdo->query(
-    'SELECT s.*, c.name AS college_name
-     FROM students s
-     LEFT JOIN colleges c ON c.college_id = s.college_id
-     ORDER BY s.created_at DESC'
-)->fetchAll();
-
+$students = $pdo->query('SELECT s.*, c.name AS college_name FROM students s LEFT JOIN colleges c ON c.college_id = s.college_id ORDER BY s.created_at DESC')->fetchAll();
 $colleges = $pdo->query('SELECT college_id, name FROM colleges ORDER BY name ASC')->fetchAll();
-
 $total    = count($students);
 $active   = count(array_filter($students, fn($s) => $s['account_status'] === 'active'));
 $inactive = $total - $active;
@@ -553,13 +451,15 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
 
     <style>
-        /* ===== Evenza Admin theme — matches the College List UI ===== */
         .uni-page {
             --ink: #1B2430;
             --ink-2: #45505E;
-            --accent: #2F6FED;
-            --accent-hover: #2359C9;
-            --accent-bg: #EAF1FE;
+            
+            /* Primary Colors Unified to match alluniversity.php */
+            --accent: #4f46e5;
+            --accent-hover: #3b31d1;
+            --accent-bg: #e8edff;
+            
             --violet: #6C5DD3;
             --violet-bg: #EFECFB;
             --bg: #F4F6FA;
@@ -593,8 +493,9 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             font-family: 'Inter', -apple-system, sans-serif;
         }
 
+        /* Unified Font Weight (Changed from 700 to 600) */
         .uni-title {
-            font-weight: 700;
+            font-weight: 600;
             font-size: 26px;
             color: var(--ink);
             margin-bottom: 2px;
@@ -893,11 +794,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             background: var(--warning);
         }
 
-        .uni-date {
-            color: var(--muted);
-            font-size: 12.5px;
-        }
-
         .uni-page .form-switch .form-check-input {
             width: 40px;
             height: 21px;
@@ -945,17 +841,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             font-size: 12px;
         }
 
-        .async-feedback.text-success {
-            color: var(--success) !important;
-        }
-
-        .async-spinner {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
         @media (max-width: 767px) {
             .uni-card-header {
                 flex-direction: column;
@@ -977,7 +862,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
     <div class="loader-bg fixed inset-0 bg-white z-[1034]">
         <div class="loader-track h-[5px] w-full inline-block absolute overflow-hidden top-0">
-            <div class="loader-fill w-[300px] h-[5px] bg-primary-500 absolute top-0 left-0 animate-[hitZak_0.6s_ease-in-out_infinite_alternate]"></div>
+            <div class="loader-fill w-[300px] h-[5px] bg-primary-500 absolute top-0 left-0"></div>
         </div>
     </div>
 
@@ -994,7 +879,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 </div>
             <?php endif; ?>
 
-            <!-- [ breadcrumb ] start -->
             <div class="page-header uni-header d-flex justify-content-between align-items-start flex-wrap gap-3">
                 <div class="page-block">
                     <h1 class="uni-title">All Students</h1>
@@ -1005,13 +889,11 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                         <li style="color: var(--ink);">All Students</li>
                     </ul>
                 </div>
-                <button type="button" class="uni-btn-add" data-bs-toggle="modal" data-bs-target="#addStudentModal">
-                    <i class="ti ti-plus"></i> Add Student
+                <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                    <i class="ti ti-plus me-2"></i> Add Student
                 </button>
             </div>
-            <!-- [ breadcrumb ] end -->
 
-            <!-- [ Status Summary Cards ] start -->
             <div class="row g-3 mb-4 mt-1">
                 <div class="col-md-4">
                     <div class="uni-stat uni-stat--total">
@@ -1041,13 +923,10 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     </div>
                 </div>
             </div>
-            <!-- [ Status Summary Cards ] end -->
 
-            <!-- [ Main Table Card ] start -->
             <div class="row">
                 <div class="col-12">
                     <div class="uni-card">
-
                         <div class="uni-card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
                             <div>
                                 <h5 class="uni-card-title">Student List</h5>
@@ -1085,7 +964,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                         </tr>
                                     </thead>
                                     <tbody>
-
                                         <?php if ($total === 0): ?>
                                             <tr>
                                                 <td colspan="9" class="text-center text-muted py-4">
@@ -1098,13 +976,10 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                                 $isActive = $s['account_status'] === 'active';
                                                 $verify   = $s['verification_status'];
                                                 $verifyPillClass = $verify === 'verified' ? 'uni-pill--active' : ($verify === 'rejected' ? 'uni-pill--inactive' : 'uni-pill--pending');
-                                                $photoSrc = !empty($s['profile_photo'])
-                                                    ? $PHOTO_WEB_PATH . htmlspecialchars($s['profile_photo'])
-                                                    : $PHOTO_WEB_PATH . 'placeholder.png';
+                                                $photoSrc = !empty($s['profile_photo']) ? $PHOTO_WEB_PATH . htmlspecialchars($s['profile_photo']) : $PHOTO_WEB_PATH . 'placeholder.png';
                                                 ?>
                                                 <tr data-id="<?= (int) $s['student_id'] ?>">
                                                     <td><?= $i + 1 ?></td>
-
                                                     <td>
                                                         <div class="d-flex align-items-center gap-3">
                                                             <img src="<?= $photoSrc ?>" class="uni-avatar" alt="Avatar">
@@ -1116,58 +991,46 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                                             </div>
                                                         </div>
                                                     </td>
-
                                                     <td><?= htmlspecialchars($s['college_name'] ?? 'Unknown') ?></td>
                                                     <td class="uni-email"><?= htmlspecialchars($s['email']) ?></td>
                                                     <td class="uni-phone"><?= htmlspecialchars($s['phone'] ?? '—') ?></td>
                                                     <td class="uni-semester"><?= htmlspecialchars($s['semester'] ?? '—') ?></td>
-
                                                     <td>
                                                         <span class="uni-pill <?= $verifyPillClass ?> verification-badge">
                                                             <span class="dot"></span><?= ucfirst($verify) ?>
                                                         </span>
                                                     </td>
-
                                                     <td>
                                                         <div class="d-flex align-items-center gap-2">
                                                             <span class="uni-pill <?= $isActive ? 'uni-pill--active' : 'uni-pill--inactive' ?> status-badge">
                                                                 <span class="dot"></span><?= $isActive ? 'Active' : 'Inactive' ?>
                                                             </span>
                                                             <div class="form-check form-switch mb-0">
-                                                                <input class="form-check-input status-toggle" type="checkbox" role="switch"
-                                                                    data-id="<?= (int) $s['student_id'] ?>" <?= $isActive ? 'checked' : '' ?>>
+                                                                <input class="form-check-input status-toggle" type="checkbox" role="switch" data-id="<?= (int) $s['student_id'] ?>" <?= $isActive ? 'checked' : '' ?>>
                                                             </div>
                                                         </div>
                                                     </td>
-
                                                     <td class="text-end">
-                                                        <button type="button" class="uni-action-btn uni-action-edit me-1" title="Edit"
-                                                            data-bs-toggle="modal" data-bs-target="#editStudentModal<?= (int) $s['student_id'] ?>">
+                                                        <button type="button" class="uni-action-btn uni-action-edit me-1" title="Edit" data-bs-toggle="modal" data-bs-target="#editStudentModal<?= (int) $s['student_id'] ?>">
                                                             <i class="bi bi-pencil"></i>
                                                         </button>
-                                                        <button type="button" class="uni-action-btn uni-action-delete" title="Delete"
-                                                            onclick="deleteStudent(<?= (int) $s['student_id'] ?>)">
+                                                        <button type="button" class="uni-action-btn uni-action-delete" title="Delete" onclick="deleteStudent(<?= (int) $s['student_id'] ?>)">
                                                             <i class="bi bi-trash"></i>
                                                         </button>
                                                     </td>
                                                 </tr>
                                             <?php endforeach; ?>
                                         <?php endif; ?>
-
                                     </tbody>
                                 </table>
                             </div>
-
                             <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top">
                                 <small class="text-muted">Showing <?= $total ?> of <?= $total ?> students</small>
                             </div>
                         </div>
-
                     </div>
                 </div>
             </div>
-            <!-- [ Main Table Card ] end -->
-
         </div>
     </div>
 
@@ -1177,21 +1040,17 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             <div class="modal-content">
                 <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                     <input type="hidden" name="form_action" value="create">
-
                     <div class="modal-header">
                         <h5 class="modal-title">Add Student</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
-
                     <div class="modal-body">
                         <div class="row g-3">
-
                             <div class="col-md-6">
                                 <label class="form-label">Student Name</label>
                                 <input type="text" class="form-control" name="name" required minlength="2" maxlength="100">
                                 <div class="invalid-feedback">Student name is required.</div>
                             </div>
-
                             <div class="col-md-6">
                                 <label class="form-label">College</label>
                                 <select class="form-select" name="college_id" required>
@@ -1202,41 +1061,34 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 </select>
                                 <div class="invalid-feedback">Select a college.</div>
                             </div>
-
                             <div class="col-md-6">
                                 <label class="form-label">Enrollment No</label>
                                 <div class="position-relative">
-                                    <input type="text" class="form-control" name="enrollment_no" required maxlength="50"
-                                        data-async-check="enrollment_no" aria-describedby="enrollAsyncFeedbackAdd">
+                                    <input type="text" class="form-control" name="enrollment_no" required maxlength="50" data-async-check="enrollment_no" aria-describedby="enrollAsyncFeedbackAdd">
                                     <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
                                 </div>
                                 <div class="invalid-feedback">Enrollment number is required.</div>
                                 <div class="async-feedback mt-1" id="enrollAsyncFeedbackAdd" role="alert" aria-live="polite"></div>
                             </div>
-
                             <div class="col-md-6">
                                 <label class="form-label">Email</label>
                                 <div class="position-relative">
-                                    <input type="email" class="form-control" name="email" required maxlength="100"
-                                        data-async-check="email" aria-describedby="emailAsyncFeedbackAdd">
+                                    <input type="email" class="form-control" name="email" required maxlength="100" data-async-check="email" aria-describedby="emailAsyncFeedbackAdd">
                                     <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
                                 </div>
                                 <div class="invalid-feedback">Enter a valid email.</div>
                                 <div class="async-feedback mt-1" id="emailAsyncFeedbackAdd" role="alert" aria-live="polite"></div>
                             </div>
-
                             <div class="col-md-6">
                                 <label class="form-label">Login Password</label>
                                 <input type="password" class="form-control" name="password" required minlength="8">
                                 <div class="invalid-feedback">Minimum 8 characters.</div>
                             </div>
-
                             <div class="col-md-6">
                                 <label class="form-label">Phone</label>
                                 <input type="text" class="form-control" name="phone" required pattern="[0-9+\-\s]{7,20}">
                                 <div class="invalid-feedback">Phone number is required (valid format).</div>
                             </div>
-
                             <div class="col-md-4">
                                 <label class="form-label">Gender</label>
                                 <select class="form-select" name="gender" required>
@@ -1247,13 +1099,11 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 </select>
                                 <div class="invalid-feedback">Select a gender.</div>
                             </div>
-
                             <div class="col-md-4">
                                 <label class="form-label">Semester</label>
                                 <input type="text" class="form-control" name="semester" required maxlength="20" placeholder="e.g. 4">
                                 <div class="invalid-feedback">Semester is required.</div>
                             </div>
-
                             <div class="col-md-4">
                                 <label class="form-label">Account Status</label>
                                 <select class="form-select" name="account_status" required>
@@ -1261,7 +1111,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     <option value="inactive">Inactive</option>
                                 </select>
                             </div>
-
                             <div class="col-md-6">
                                 <label class="form-label">Verification Status</label>
                                 <select class="form-select" name="verification_status" required>
@@ -1270,33 +1119,28 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     <option value="rejected">Rejected</option>
                                 </select>
                             </div>
-
                             <div class="col-md-6">
                                 <label class="form-label">Profile Photo (JPG/PNG, max 2MB)</label>
                                 <input type="file" class="form-control" name="profile_photo" accept="image/png,image/jpeg" required>
                                 <div class="invalid-feedback">Profile photo is required.</div>
                             </div>
-
                             <div class="col-12">
                                 <label class="form-label">Student ID Card Image (JPG/PNG, max 2MB)</label>
                                 <input type="file" class="form-control" name="id_card_image" accept="image/png,image/jpeg" required>
                                 <div class="invalid-feedback">Student ID card image is required.</div>
                             </div>
-
                         </div>
                     </div>
-
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Student</button>
                     </div>
-
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- ===================== EDIT STUDENT MODALS (one per row) ===================== -->
+    <!-- ===================== EDIT STUDENT MODALS ===================== -->
     <?php foreach ($students as $s): ?>
         <div class="modal fade" id="editStudentModal<?= (int) $s['student_id'] ?>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1304,21 +1148,17 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                         <input type="hidden" name="form_action" value="update">
                         <input type="hidden" name="id" value="<?= (int) $s['student_id'] ?>">
-
                         <div class="modal-header">
                             <h5 class="modal-title">Edit Student</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
-
                         <div class="modal-body">
                             <div class="row g-3">
-
                                 <div class="col-md-6">
                                     <label class="form-label">Student Name</label>
                                     <input type="text" class="form-control" name="name" required minlength="2" maxlength="100" value="<?= htmlspecialchars($s['name']) ?>">
                                     <div class="invalid-feedback">Student name is required.</div>
                                 </div>
-
                                 <div class="col-md-6">
                                     <label class="form-label">College</label>
                                     <select class="form-select" name="college_id" required>
@@ -1329,43 +1169,34 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                         <?php endforeach; ?>
                                     </select>
                                 </div>
-
                                 <div class="col-md-6">
                                     <label class="form-label">Enrollment No</label>
                                     <div class="position-relative">
-                                        <input type="text" class="form-control" name="enrollment_no" required maxlength="50"
-                                            value="<?= htmlspecialchars($s['enrollment_no'] ?? '') ?>"
-                                            data-async-check="enrollment_no" aria-describedby="enrollAsyncFeedback<?= (int) $s['student_id'] ?>">
+                                        <input type="text" class="form-control" name="enrollment_no" required maxlength="50" value="<?= htmlspecialchars($s['enrollment_no'] ?? '') ?>" data-async-check="enrollment_no" aria-describedby="enrollAsyncFeedback<?= (int) $s['student_id'] ?>">
                                         <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
                                     </div>
                                     <div class="invalid-feedback">Enrollment number is required.</div>
                                     <div class="async-feedback mt-1" id="enrollAsyncFeedback<?= (int) $s['student_id'] ?>" role="alert" aria-live="polite"></div>
                                 </div>
-
                                 <div class="col-md-6">
                                     <label class="form-label">Email</label>
                                     <div class="position-relative">
-                                        <input type="email" class="form-control" name="email" required maxlength="100"
-                                            value="<?= htmlspecialchars($s['email']) ?>"
-                                            data-async-check="email" aria-describedby="emailAsyncFeedback<?= (int) $s['student_id'] ?>">
+                                        <input type="email" class="form-control" name="email" required maxlength="100" value="<?= htmlspecialchars($s['email']) ?>" data-async-check="email" aria-describedby="emailAsyncFeedback<?= (int) $s['student_id'] ?>">
                                         <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
                                     </div>
                                     <div class="invalid-feedback">Enter a valid email.</div>
                                     <div class="async-feedback mt-1" id="emailAsyncFeedback<?= (int) $s['student_id'] ?>" role="alert" aria-live="polite"></div>
                                 </div>
-
                                 <div class="col-md-6">
                                     <label class="form-label">Reset Password <span class="text-muted">(optional)</span></label>
                                     <input type="password" class="form-control" name="password" minlength="8" placeholder="Leave blank to keep current password">
                                     <div class="invalid-feedback">Minimum 8 characters.</div>
                                 </div>
-
                                 <div class="col-md-6">
                                     <label class="form-label">Phone</label>
                                     <input type="text" class="form-control" name="phone" required pattern="[0-9+\-\s]{7,20}" value="<?= htmlspecialchars($s['phone'] ?? '') ?>">
                                     <div class="invalid-feedback">Phone number is required (valid format).</div>
                                 </div>
-
                                 <div class="col-md-4">
                                     <label class="form-label">Gender</label>
                                     <select class="form-select" name="gender" required>
@@ -1376,13 +1207,11 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     </select>
                                     <div class="invalid-feedback">Select a gender.</div>
                                 </div>
-
                                 <div class="col-md-4">
                                     <label class="form-label">Semester</label>
                                     <input type="text" class="form-control" name="semester" required maxlength="20" value="<?= htmlspecialchars($s['semester'] ?? '') ?>">
                                     <div class="invalid-feedback">Semester is required.</div>
                                 </div>
-
                                 <div class="col-md-4">
                                     <label class="form-label">Account Status</label>
                                     <select class="form-select" name="account_status" required>
@@ -1390,7 +1219,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                         <option value="inactive" <?= $s['account_status'] === 'inactive' ? 'selected' : '' ?>>Inactive</option>
                                     </select>
                                 </div>
-
                                 <div class="col-md-6">
                                     <label class="form-label">Verification Status</label>
                                     <select class="form-select" name="verification_status" required>
@@ -1399,41 +1227,22 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                         <option value="rejected" <?= $s['verification_status'] === 'rejected' ? 'selected' : '' ?>>Rejected</option>
                                     </select>
                                 </div>
-
                                 <div class="col-md-6">
-                                    <label class="form-label">
-                                        <?= empty($s['profile_photo']) ? 'Profile Photo' : 'Replace Profile Photo (optional)' ?>
-                                    </label>
-                                    <input type="file" class="form-control" name="profile_photo" accept="image/png,image/jpeg"
-                                        <?= empty($s['profile_photo']) ? 'required' : '' ?>>
-                                    <?php if (!empty($s['profile_photo'])): ?>
-                                        <small class="text-muted">Current: <?= htmlspecialchars($s['profile_photo']) ?></small>
-                                    <?php else: ?>
-                                        <div class="invalid-feedback">Profile photo is required.</div>
-                                    <?php endif; ?>
+                                    <label class="form-label"><?= empty($s['profile_photo']) ? 'Profile Photo' : 'Replace Profile Photo (optional)' ?></label>
+                                    <input type="file" class="form-control" name="profile_photo" accept="image/png,image/jpeg">
+                                    <?php if (!empty($s['profile_photo'])): ?><small class="text-muted">Current: <?= htmlspecialchars($s['profile_photo']) ?></small><?php endif; ?>
                                 </div>
-
                                 <div class="col-12">
-                                    <label class="form-label">
-                                        <?= empty($s['id_card_image']) ? 'Student ID Card Image' : 'Replace ID Card Image (optional)' ?>
-                                    </label>
-                                    <input type="file" class="form-control" name="id_card_image" accept="image/png,image/jpeg"
-                                        <?= empty($s['id_card_image']) ? 'required' : '' ?>>
-                                    <?php if (!empty($s['id_card_image'])): ?>
-                                        <small class="text-muted">Current: <?= htmlspecialchars($s['id_card_image']) ?></small>
-                                    <?php else: ?>
-                                        <div class="invalid-feedback">Student ID card image is required.</div>
-                                    <?php endif; ?>
+                                    <label class="form-label"><?= empty($s['id_card_image']) ? 'Student ID Card Image' : 'Replace ID Card Image (optional)' ?></label>
+                                    <input type="file" class="form-control" name="id_card_image" accept="image/png,image/jpeg">
+                                    <?php if (!empty($s['id_card_image'])): ?><small class="text-muted">Current: <?= htmlspecialchars($s['id_card_image']) ?></small><?php endif; ?>
                                 </div>
-
                             </div>
                         </div>
-
                         <div class="modal-footer">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-primary">Update Student</button>
                         </div>
-
                     </form>
                 </div>
             </div>
@@ -1462,7 +1271,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
     </script>
 
     <script>
-        // Bootstrap client-side validation styling for both modal forms
         document.querySelectorAll(".needs-validation").forEach(form => {
             form.addEventListener("submit", function(e) {
                 if (!form.checkValidity()) {
@@ -1480,7 +1288,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             });
         <?php endif; ?>
 
-        // Search & Filter
         const searchInput = document.getElementById("studentSearch");
         const statusFilter = document.getElementById("statusFilter");
         const rows = document.querySelectorAll("#studentTable tbody tr");
@@ -1490,23 +1297,19 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             const statusValue = statusFilter.value.toLowerCase();
 
             rows.forEach(row => {
-                if (!row.querySelector(".status-badge")) return; // skip the "no data" row
-
+                if (!row.querySelector(".status-badge")) return;
                 const rowText = row.innerText.toLowerCase();
                 const statusBadge = row.querySelector(".status-badge");
                 const status = statusBadge ? statusBadge.innerText.toLowerCase().trim() : '';
 
                 const matchesSearch = rowText.includes(searchValue);
                 const matchesStatus = statusValue === "" || status === statusValue;
-
                 row.style.display = matchesSearch && matchesStatus ? "" : "none";
             });
         }
-
         searchInput.addEventListener("keyup", filterStudents);
         statusFilter.addEventListener("change", filterStudents);
 
-        // Account Status Toggle (AJAX, persisted to DB)
         const activeCountBox = document.getElementById("activeCount");
         const inactiveCountBox = document.getElementById("inactiveCount");
 
@@ -1520,7 +1323,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         function adjustCounts(isActive) {
             let activeVal = parseInt(activeCountBox.textContent, 10) || 0;
             let inactiveVal = parseInt(inactiveCountBox.textContent, 10) || 0;
-
             if (isActive) {
                 activeCountBox.textContent = activeVal + 1;
                 if (inactiveVal > 0) inactiveCountBox.textContent = inactiveVal - 1;
@@ -1539,18 +1341,12 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 setBadge(row, isActive);
                 adjustCounts(isActive);
                 filterStudents();
-
                 this.disabled = true;
 
                 fetch("students.php?action=toggle_status", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            id: studentId,
-                            status: isActive ? "active" : "inactive"
-                        })
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: studentId, status: isActive ? "active" : "inactive" })
                     })
                     .then(res => {
                         if (!res.ok) throw new Error("Request failed");
@@ -1566,9 +1362,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                         filterStudents();
                         alert("Could not update status. Please try again.");
                     })
-                    .finally(() => {
-                        toggle.disabled = false;
-                    });
+                    .finally(() => { toggle.disabled = false; });
             });
         });
 
@@ -1578,7 +1372,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             }
         }
 
-        // ===================== ASYNC UNIQUENESS VALIDATION (enrollment_no / email) =====================
         (function() {
             const DEBOUNCE_MS = 450;
             const timers = new WeakMap();
@@ -1590,27 +1383,24 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
             function setState(input, feedbackEl, spinner, state, message) {
                 spinner.classList.toggle("d-none", state !== "checking");
-
                 if (state === "valid") {
                     input.setAttribute("aria-invalid", "false");
                     input.setCustomValidity("");
                     feedbackEl.textContent = "Available";
-                    feedbackEl.classList.remove("text-danger");
-                    feedbackEl.classList.add("text-success");
+                    feedbackEl.className = "async-feedback mt-1 text-success";
                 } else if (state === "invalid") {
                     input.setAttribute("aria-invalid", "true");
                     input.setCustomValidity(message || "Already in use.");
                     feedbackEl.textContent = message || "Already in use.";
-                    feedbackEl.classList.remove("text-success");
-                    feedbackEl.classList.add("text-danger");
+                    feedbackEl.className = "async-feedback mt-1 text-danger";
                 } else if (state === "checking") {
                     input.setCustomValidity("Checking availability…");
                     feedbackEl.textContent = "Checking availability…";
-                    feedbackEl.classList.remove("text-success", "text-danger");
+                    feedbackEl.className = "async-feedback mt-1 text-secondary";
                 } else {
                     input.setCustomValidity("");
                     feedbackEl.textContent = "";
-                    feedbackEl.classList.remove("text-success", "text-danger");
+                    feedbackEl.className = "async-feedback mt-1";
                 }
                 input.dataset.asyncState = state;
             }
@@ -1618,22 +1408,14 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             async function runCheck(input) {
                 const form = input.closest("form");
                 if (!form) return;
-
                 const field = input.dataset.asyncCheck;
                 const value = input.value.trim();
-                const feedbackId = input.getAttribute("aria-describedby");
-                const feedbackEl = feedbackId ? document.getElementById(feedbackId) : null;
+                const feedbackEl = document.getElementById(input.getAttribute("aria-describedby"));
                 const spinner = input.parentElement.querySelector(".async-spinner");
                 const idField = form.querySelector('input[name="id"]');
 
                 if (!feedbackEl || !spinner) return;
-
-                if (!value) {
-                    setState(input, feedbackEl, spinner, "idle");
-                    return;
-                }
-
-                if (!input.checkValidity()) {
+                if (!value || !input.checkValidity()) {
                     setState(input, feedbackEl, spinner, "idle");
                     return;
                 }
@@ -1643,29 +1425,13 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 try {
                     const res = await fetch("students.php?action=check_unique", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            field,
-                            value,
-                            id: idField ? idField.value : null
-                        })
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ field, value, id: idField ? idField.value : null })
                     });
-
                     if (!res.ok) throw new Error("Request failed");
                     const data = await res.json();
-
-                    setState(
-                        input,
-                        feedbackEl,
-                        spinner,
-                        data.available ? "valid" : "invalid",
-                        data.message
-                    );
+                    setState(input, feedbackEl, spinner, data.available ? "valid" : "invalid", data.message);
                 } catch {
-                    // Network failure: don't hard-block the user client-side.
-                    // Final server-side validate_student() check on submit is still authoritative.
                     setState(input, feedbackEl, spinner, "idle");
                 }
             }
@@ -1680,22 +1446,15 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 const asyncFields = form.querySelectorAll("[data-async-check]");
                 if (!asyncFields.length) return;
 
-                const blocking = [...asyncFields].some(
-                    el => el.dataset.asyncState === "checking" || el.dataset.asyncState === "invalid"
-                );
-
+                const blocking = [...asyncFields].some(el => el.dataset.asyncState === "checking" || el.dataset.asyncState === "invalid");
                 if (blocking) {
                     e.preventDefault();
                     e.stopPropagation();
                     form.classList.add("was-validated");
-                    asyncFields.forEach(el => {
-                        if (el.dataset.asyncState === "checking") runCheck(el);
-                    });
+                    asyncFields.forEach(el => { if (el.dataset.asyncState === "checking") runCheck(el); });
                 }
             });
         })();
     </script>
-
 </body>
-
 </html>
