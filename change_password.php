@@ -1,19 +1,44 @@
 <?php
 include 'auth_check.php';
 
-/*
- * ===========================================================================
- * NOTE: Replace with real DB lookups, e.g.:
- *
- * $stmt = $pdo->prepare("SELECT password_hash FROM admins WHERE id = ?");
- * $stmt->execute([$_SESSION['admin_id']]);
- * $currentHash = $stmt->fetchColumn();
- * ===========================================================================
- */
-$currentHash = password_hash('Admin@123', PASSWORD_DEFAULT); // placeholder stand-in for the stored hash
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+/* =========================================================
+   DB CONNECTION
+   ========================================================= */
+$DB_HOST = '127.0.0.1';
+$DB_PORT = '3306';
+$DB_NAME = 'evenza';
+$DB_USER = 'root';
+$DB_PASS = '';
+
+try {
+    $pdo = new PDO(
+        "mysql:host={$DB_HOST};port={$DB_PORT};dbname={$DB_NAME};charset=utf8mb4",
+        $DB_USER,
+        $DB_PASS,
+        [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]
+    );
+} catch (PDOException $e) {
+    die('Database connection failed.');
+}
 
 $errors  = [];
 $success = false;
+
+$admin_id = $_SESSION['admin_id'] ?? 0;
+
+/* Fetch current admin password */
+$stmt = $pdo->prepare('SELECT password FROM admins WHERE admin_id = :id');
+$stmt->execute(['id' => $admin_id]);
+$adminRow = $stmt->fetch();
+$storedPassword = $adminRow['password'] ?? null;
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
@@ -22,9 +47,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $confirmPassword = $_POST['confirm_password'] ?? '';
 
     // Current password check
-    if ($currentPassword === '') {
+    if ($storedPassword === null) {
+        $errors['current_password'] = 'Admin account not found.';
+    } elseif ($currentPassword === '') {
         $errors['current_password'] = 'Please enter your current password.';
-    } elseif (!password_verify($currentPassword, $currentHash)) {
+    } elseif ($currentPassword !== $storedPassword) {
+        // NOTE: plain-text comparison (DB me plain password store hai)
         $errors['current_password'] = 'Current password is incorrect.';
     }
 
@@ -41,7 +69,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $errors['new_password'] = 'Password must include at least one number.';
     } elseif (!preg_match('/[^a-zA-Z0-9]/', $newPassword)) {
         $errors['new_password'] = 'Password must include at least one special character.';
-    } elseif ($currentPassword !== '' && password_verify($newPassword, $currentHash)) {
+    } elseif ($storedPassword !== null && $newPassword === $storedPassword) {
         $errors['new_password'] = 'New password must be different from the current password.';
     }
 
@@ -53,247 +81,216 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 
     if (empty($errors)) {
-        // TODO: persist the new hashed password
-        // $newHash = password_hash($newPassword, PASSWORD_DEFAULT);
-        // $stmt = $pdo->prepare("UPDATE admins SET password_hash = ? WHERE id = ?");
-        // $stmt->execute([$newHash, $_SESSION['admin_id']]);
-        $success = true;
+        try {
+            $upd = $pdo->prepare('UPDATE admins SET password = :pass WHERE admin_id = :id');
+            $upd->execute(['pass' => $newPassword, 'id' => $admin_id]);
+            $success = true;
+            $storedPassword = $newPassword;
+        } catch (PDOException $e) {
+            $errors['current_password'] = 'Something went wrong. Please try again.';
+        }
     }
 }
 ?>
 <!doctype html>
-<html lang="en" data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" dir="ltr" data-pc-theme="light">
+<html lang="en">
 
 <head>
-    <title>Evets | Admin</title>
-    <!-- [Meta] -->
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
-    <meta
-        name="description"
-        content="Datta Able is trending dashboard template made using Bootstrap 5 design framework. Datta Able is available in Bootstrap, React, CodeIgniter, Angular,  and .net Technologies." />
-    <meta
-        name="keywords"
-        content="Bootstrap admin template, Dashboard UI Kit, Dashboard Template, Backend Panel, react dashboard, angular dashboard" />
-    <meta name="author" content="CodedThemes" />
 
-    <!-- [Favicon] icon -->
-    <link rel="icon" href="assets/images/favicon.svg" type="image/x-icon" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <!-- [Font] Family -->
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-    <!-- [phosphor Icons] https://phosphoricons.com/ -->
-    <link rel="stylesheet" href="assets/fonts/phosphor/duotone/style.css" />
-    <!-- [Tabler Icons] https://tablericons.com -->
-    <link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
-    <!-- [Feather Icons] https://feathericons.com -->
-    <link rel="stylesheet" href="assets/fonts/feather.css" />
-    <!-- [Font Awesome Icons] https://fontawesome.com/icons -->
-    <link rel="stylesheet" href="assets/fonts/fontawesome.css" />
-    <!-- [Material Icons] https://fonts.google.com/icons -->
-    <link rel="stylesheet" href="assets/fonts/material.css" />
-    <!-- [Template CSS Files] -->
-    <link rel="stylesheet" href="assets/css/style.css" id="main-style-link" />
+    <title>Change Password | Evenza Admin</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
+
+    <style>
+        body { background-color: #f5f7fb; }
+        .page-title { font-weight: 600; color: #1f2937; }
+        .page-subtitle { color: #6b7280; font-size: 14px; }
+        .custom-breadcrumb { display: flex; align-items: center; gap: 12px; list-style: none; padding: 0; margin: 0; font-size: 14px; }
+        .custom-breadcrumb li { color: #6b7280; }
+        .custom-breadcrumb li a { text-decoration: none; color: #4f46e5; }
+        .custom-breadcrumb li:not(:last-child)::after { content: "/"; margin-left: 12px; color: #adb5bd; }
+        .main-card { border: 0; border-radius: 16px; overflow: hidden; }
+        .main-card-header { background: #ffffff; padding: 20px 24px; border-bottom: 1px solid #edf0f5; }
+        .header-icon { width: 44px; height: 44px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 20px; background: #e8edff; color: #4f46e5; }
+        .form-label { font-weight: 500; color: #374151; }
+        .input-group .btn-eye { border: 1px solid #dee2e6; background: #f8f9fa; color: #6b7280; }
+        .input-group .btn-eye:hover { background: #eef1f6; }
+        .rule-item { transition: 0.2s ease; }
+        .strength-wrap { height: 6px; border-radius: 20px; background: #eceff4; overflow: hidden; }
+        .strength-wrap .bar { height: 100%; width: 0; transition: 0.3s ease; border-radius: 20px; }
+        .info-note { background: #f8faff; border: 1px solid #e6ecff; border-radius: 12px; }
+    </style>
 
 </head>
 
 <body>
 
-    <!-- [ Pre-loader ] start -->
     <div class="loader-bg fixed inset-0 bg-white dark:bg-themedark-cardbg z-[1034]">
         <div class="loader-track h-[5px] w-full inline-block absolute overflow-hidden top-0">
-            <div class="loader-fill w-[300px] h-[5px] bg-primary-500 absolute top-0 left-0 animate-[hitZak_0.6s_ease-in-out_infinite_alternate]"></div>
+            <div class="loader-fill w-[300px] h-[5px] bg-primary-500 absolute top-0 left-0"></div>
         </div>
     </div>
-    <!-- [ Pre-loader ] End -->
-    <!-- [ Sidebar Menu ] start -->
+
     <?php include_once("Sidebar.php"); ?>
-    <!-- [ Sidebar Menu ] end -->
-    <!-- [ Header Topbar ] start -->
     <?php include_once("Header.php"); ?>
-    <!-- [ Header ] end -->
 
+    <div class="pc-container">
+        <div class="pc-content">
 
-
-<!-- [ Main Content ] start -->
-<div class="pc-container">
-    <div class="pc-content">
-
-        <!-- Page Header -->
-        <div class="page-header">
-            <div class="page-block">
-                <div class="page-header-title">
-                    <h5 class="mb-0 font-medium">Change Password</h5>
+            <!-- Page Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="page-title mb-1">Change Password</h4>
+                    <p class="page-subtitle mb-3">Update your account password to keep it secure</p>
+                    <ul class="custom-breadcrumb">
+                        <li><a href="Dashboard.php">Home</a></li>
+                        <li>Admin Settings</li>
+                        <li>Change Password</li>
+                    </ul>
                 </div>
-
-                <ul class="breadcrumb">
-                    <li class="breadcrumb-item">
-                        <a href="index.php">Home</a>
-                    </li>
-                    <li class="breadcrumb-item">
-                        Admin Settings
-                    </li>
-                    <li class="breadcrumb-item" aria-current="page">
-                        Change Password
-                    </li>
-                </ul>
             </div>
-        </div>
 
-        <div class="row justify-content-center">
+            <div class="row justify-content-center">
+                <div class="col-lg-7">
 
-            <div class="col-lg-7">
+                    <?php if ($success): ?>
+                        <div class="alert alert-success alert-dismissible fade show d-flex align-items-center" role="alert">
+                            <i class="bi bi-check-circle-fill me-2"></i>
+                            Your password has been changed successfully.
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
 
-                <?php if ($success): ?>
-                    <div class="alert alert-success d-flex align-items-center" role="alert">
-                        <i class="ti ti-circle-check me-2"></i>
-                        Your password has been changed successfully.
-                    </div>
-                <?php endif; ?>
+                    <?php if (!empty($errors)): ?>
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert">
+                            <strong><i class="bi bi-exclamation-triangle-fill me-2"></i>Please fix the following:</strong>
+                            <ul class="mb-0 mt-2">
+                                <?php foreach ($errors as $err): ?>
+                                    <li><?= htmlspecialchars($err) ?></li>
+                                <?php endforeach; ?>
+                            </ul>
+                            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                        </div>
+                    <?php endif; ?>
 
-                <?php if (!empty($errors)): ?>
-                    <div class="alert alert-danger" role="alert">
-                        <strong>Please fix the following:</strong>
-                        <ul class="mb-0">
-                            <?php foreach ($errors as $err): ?>
-                                <li><?php echo htmlspecialchars($err); ?></li>
-                            <?php endforeach; ?>
-                        </ul>
-                    </div>
-                <?php endif; ?>
+                    <div class="card main-card shadow-sm">
 
-                <div class="card shadow-sm border-0">
-
-                    <div class="card-header">
-                        <h5 class="mb-0">
-                            <i class="ti ti-lock"></i>
-                            Update Your Password
-                        </h5>
-                    </div>
-
-                    <div class="card-body">
-
-                        <form action="" method="post" id="changePasswordForm" class="needs-validation" novalidate>
-
-                            <!-- Current Password -->
-                            <div class="mb-3">
-                                <label class="form-label" for="current_password">
-                                    Current Password <span class="text-danger">*</span>
-                                </label>
-
-                                <div class="input-group">
-                                    <input
-                                        type="password"
-                                        class="form-control <?php echo isset($errors['current_password']) ? 'is-invalid' : ''; ?>"
-                                        name="current_password"
-                                        id="current_password"
-                                        required>
-                                    <button class="btn btn-light toggle-password" type="button" data-target="current_password">
-                                        <i class="ti ti-eye"></i>
-                                    </button>
-                                    <div class="invalid-feedback">
-                                        <?php echo isset($errors['current_password']) ? htmlspecialchars($errors['current_password']) : 'Please enter your current password.'; ?>
-                                    </div>
-                                </div>
+                        <div class="main-card-header d-flex align-items-center gap-3">
+                            <div class="header-icon"><i class="bi bi-shield-lock"></i></div>
+                            <div>
+                                <h5 class="mb-0">Update Your Password</h5>
+                                <small class="text-muted">Choose a strong, unique password</small>
                             </div>
+                        </div>
 
-                            <hr class="my-4">
+                        <div class="card-body p-4">
 
-                            <!-- New Password -->
-                            <div class="mb-3">
-                                <label class="form-label" for="new_password">
-                                    New Password <span class="text-danger">*</span>
-                                </label>
+                            <form action="" method="post" id="changePasswordForm" class="needs-validation" novalidate>
 
-                                <div class="input-group">
-                                    <input
-                                        type="password"
-                                        class="form-control <?php echo isset($errors['new_password']) ? 'is-invalid' : ''; ?>"
-                                        name="new_password"
-                                        id="new_password"
-                                        minlength="8"
-                                        required>
-                                    <button class="btn btn-light toggle-password" type="button" data-target="new_password">
-                                        <i class="ti ti-eye"></i>
-                                    </button>
-                                    <div class="invalid-feedback">
-                                        <?php echo isset($errors['new_password']) ? htmlspecialchars($errors['new_password']) : 'Please enter a valid new password.'; ?>
+                                <!-- Current Password -->
+                                <div class="mb-3">
+                                    <label class="form-label" for="current_password">
+                                        Current Password <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password"
+                                            class="form-control <?= isset($errors['current_password']) ? 'is-invalid' : '' ?>"
+                                            name="current_password" id="current_password" required>
+                                        <button class="btn btn-eye toggle-password" type="button" data-target="current_password">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <div class="invalid-feedback">
+                                            <?= isset($errors['current_password']) ? htmlspecialchars($errors['current_password']) : 'Please enter your current password.' ?>
+                                        </div>
                                     </div>
                                 </div>
 
-                                <!-- Strength meter -->
-                                <div class="progress mt-2" style="height:6px;">
-                                    <div id="strengthBar" class="progress-bar" role="progressbar" style="width:0%;"></div>
+                                <hr class="my-4">
+
+                                <!-- New Password -->
+                                <div class="mb-3">
+                                    <label class="form-label" for="new_password">
+                                        New Password <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password"
+                                            class="form-control <?= isset($errors['new_password']) ? 'is-invalid' : '' ?>"
+                                            name="new_password" id="new_password" minlength="8" required>
+                                        <button class="btn btn-eye toggle-password" type="button" data-target="new_password">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <div class="invalid-feedback">
+                                            <?= isset($errors['new_password']) ? htmlspecialchars($errors['new_password']) : 'Please enter a valid new password.' ?>
+                                        </div>
+                                    </div>
+
+                                    <!-- Strength meter -->
+                                    <div class="strength-wrap mt-2">
+                                        <div id="strengthBar" class="bar"></div>
+                                    </div>
+                                    <small id="strengthLabel" class="text-muted">Password strength</small>
+
+                                    <!-- Live requirement checklist -->
+                                    <ul class="list-unstyled small mt-3 mb-0" id="passwordRules">
+                                        <li id="rule-length" class="rule-item text-muted mb-1"><i class="bi bi-circle me-1"></i> At least 8 characters</li>
+                                        <li id="rule-upper" class="rule-item text-muted mb-1"><i class="bi bi-circle me-1"></i> One uppercase letter</li>
+                                        <li id="rule-lower" class="rule-item text-muted mb-1"><i class="bi bi-circle me-1"></i> One lowercase letter</li>
+                                        <li id="rule-number" class="rule-item text-muted mb-1"><i class="bi bi-circle me-1"></i> One number</li>
+                                        <li id="rule-special" class="rule-item text-muted mb-1"><i class="bi bi-circle me-1"></i> One special character</li>
+                                    </ul>
                                 </div>
-                                <small id="strengthLabel" class="text-muted">Password strength</small>
 
-                                <!-- Live requirement checklist -->
-                                <ul class="list-unstyled small mt-2 mb-0" id="passwordRules">
-                                    <li id="rule-length" class="text-muted"><i class="ti ti-circle"></i> At least 8 characters</li>
-                                    <li id="rule-upper" class="text-muted"><i class="ti ti-circle"></i> One uppercase letter</li>
-                                    <li id="rule-lower" class="text-muted"><i class="ti ti-circle"></i> One lowercase letter</li>
-                                    <li id="rule-number" class="text-muted"><i class="ti ti-circle"></i> One number</li>
-                                    <li id="rule-special" class="text-muted"><i class="ti ti-circle"></i> One special character</li>
-                                </ul>
-                            </div>
-
-                            <!-- Confirm Password -->
-                            <div class="mb-3">
-                                <label class="form-label" for="confirm_password">
-                                    Confirm New Password <span class="text-danger">*</span>
-                                </label>
-
-                                <div class="input-group">
-                                    <input
-                                        type="password"
-                                        class="form-control <?php echo isset($errors['confirm_password']) ? 'is-invalid' : ''; ?>"
-                                        name="confirm_password"
-                                        id="confirm_password"
-                                        required>
-                                    <button class="btn btn-light toggle-password" type="button" data-target="confirm_password">
-                                        <i class="ti ti-eye"></i>
-                                    </button>
-                                    <div class="invalid-feedback" id="confirmFeedback">
-                                        <?php echo isset($errors['confirm_password']) ? htmlspecialchars($errors['confirm_password']) : 'Passwords do not match.'; ?>
+                                <!-- Confirm Password -->
+                                <div class="mb-3">
+                                    <label class="form-label" for="confirm_password">
+                                        Confirm New Password <span class="text-danger">*</span>
+                                    </label>
+                                    <div class="input-group">
+                                        <input type="password"
+                                            class="form-control <?= isset($errors['confirm_password']) ? 'is-invalid' : '' ?>"
+                                            name="confirm_password" id="confirm_password" required>
+                                        <button class="btn btn-eye toggle-password" type="button" data-target="confirm_password">
+                                            <i class="bi bi-eye"></i>
+                                        </button>
+                                        <div class="invalid-feedback" id="confirmFeedback">
+                                            <?= isset($errors['confirm_password']) ? htmlspecialchars($errors['confirm_password']) : 'Passwords do not match.' ?>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <div class="alert alert-light border d-flex align-items-start gap-2 mb-4">
-                                <i class="ti ti-info-circle mt-1"></i>
-                                <div class="small text-muted">
-                                    Use a unique password you don't use elsewhere. You'll be asked to sign in again on other devices after changing it.
+                                <div class="info-note d-flex align-items-start gap-2 p-3 mb-4">
+                                    <i class="bi bi-info-circle text-primary mt-1"></i>
+                                    <div class="small text-muted">
+                                        Use a unique password you don't use elsewhere. You'll be asked to sign in again on other devices after changing it.
+                                    </div>
                                 </div>
-                            </div>
 
-                            <!-- Buttons -->
-                            <div class="text-end">
-                                <a href="profile.php" class="btn btn-light">
-                                    Cancel
-                                </a>
-                                <button type="submit" class="btn btn-primary">
-                                    <i class="ti ti-device-floppy"></i>
-                                    Update Password
-                                </button>
-                            </div>
+                                <!-- Buttons -->
+                                <div class="text-end">
+                                    <a href="Dashboard.php" class="btn btn-light px-4">Cancel</a>
+                                    <button type="submit" class="btn btn-primary px-4">
+                                        <i class="bi bi-save me-1"></i> Update Password
+                                    </button>
+                                </div>
 
-                        </form>
+                            </form>
 
+                        </div>
                     </div>
 
                 </div>
-
             </div>
 
         </div>
-
     </div>
-</div>
-<!-- [ Main Content ] end -->
+
     <?php include_once("Footer.php"); ?>
-    <!-- Required Js -->
+
     <script src="assets/js/plugins/simplebar.min.js"></script>
     <script src="assets/js/plugins/popper.min.js"></script>
     <script src="assets/js/icon/custom-icon.js"></script>
@@ -301,42 +298,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     <script src="assets/js/component.js"></script>
     <script src="assets/js/theme.js"></script>
     <script src="assets/js/script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-    <div class="floting-button fixed bottom-[50px] right-[30px] z-[1030]">
-    </div>
-
-
-    <script>
-        layout_change('false');
-    </script>
-
-
-    <script>
-        layout_theme_sidebar_change('dark');
-    </script>
-
-
-    <script>
-        change_box_container('false');
-    </script>
-
-    <script>
-        layout_caption_change('true');
-    </script>
-
-    <script>
-        layout_rtl_change('false');
-    </script>
-
-    <script>
-        preset_change('preset-1');
-    </script>
-
-    <script>
-        main_layout_change('vertical');
-    </script>
-
-    <!-- ===================== Change Password: strength meter, live rules, validation ===================== -->
+    <!-- Change Password: strength meter, live rules, validation -->
     <script>
         (function () {
             'use strict';
@@ -349,30 +313,28 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
             const confirmFeedback = document.getElementById('confirmFeedback');
 
             const rules = {
-                length:  { test: v => v.length >= 8,        el: document.getElementById('rule-length') },
-                upper:   { test: v => /[A-Z]/.test(v),       el: document.getElementById('rule-upper') },
-                lower:   { test: v => /[a-z]/.test(v),       el: document.getElementById('rule-lower') },
-                number:  { test: v => /[0-9]/.test(v),       el: document.getElementById('rule-number') },
+                length:  { test: v => v.length >= 8,          el: document.getElementById('rule-length') },
+                upper:   { test: v => /[A-Z]/.test(v),        el: document.getElementById('rule-upper') },
+                lower:   { test: v => /[a-z]/.test(v),        el: document.getElementById('rule-lower') },
+                number:  { test: v => /[0-9]/.test(v),        el: document.getElementById('rule-number') },
                 special: { test: v => /[^a-zA-Z0-9]/.test(v), el: document.getElementById('rule-special') }
             };
 
             function updateRules(value) {
                 let passedCount = 0;
-
                 Object.values(rules).forEach(function (rule) {
                     const icon = rule.el.querySelector('i');
                     if (rule.test(value)) {
                         rule.el.classList.remove('text-muted');
                         rule.el.classList.add('text-success');
-                        icon.className = 'ti ti-circle-check';
+                        icon.className = 'bi bi-check-circle-fill me-1';
                         passedCount++;
                     } else {
                         rule.el.classList.remove('text-success');
                         rule.el.classList.add('text-muted');
-                        icon.className = 'ti ti-circle';
+                        icon.className = 'bi bi-circle me-1';
                     }
                 });
-
                 return passedCount;
             }
 
@@ -380,30 +342,20 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                 const percent = (passedCount / 5) * 100;
                 strengthBar.style.width = percent + '%';
 
-                strengthBar.classList.remove('bg-danger', 'bg-warning', 'bg-success');
-
+                let color = '#dc3545';
                 let label = 'Very weak';
-                if (passedCount <= 1) {
-                    strengthBar.classList.add('bg-danger');
-                    label = 'Very weak';
-                } else if (passedCount <= 3) {
-                    strengthBar.classList.add('bg-warning');
-                    label = 'Moderate';
-                } else if (passedCount === 4) {
-                    strengthBar.classList.add('bg-warning');
-                    label = 'Strong';
-                } else {
-                    strengthBar.classList.add('bg-success');
-                    label = 'Very strong';
-                }
+                if (passedCount <= 1)      { color = '#dc3545'; label = 'Very weak'; }
+                else if (passedCount <= 3) { color = '#ffc107'; label = 'Moderate'; }
+                else if (passedCount === 4){ color = '#fd7e14'; label = 'Strong'; }
+                else                       { color = '#198754'; label = 'Very strong'; }
 
+                strengthBar.style.background = color;
                 strengthLabel.textContent = newPassword.value ? 'Password strength: ' + label : 'Password strength';
             }
 
             newPassword.addEventListener('input', function () {
                 const passedCount = updateRules(newPassword.value);
                 updateStrengthBar(passedCount);
-
                 if (newPassword.checkValidity() && passedCount === 5) {
                     newPassword.classList.remove('is-invalid');
                 }
@@ -412,7 +364,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 
             function checkConfirmMatch() {
                 if (confirmPassword.value === '') return;
-
                 if (confirmPassword.value !== newPassword.value) {
                     confirmPassword.setCustomValidity('mismatch');
                     confirmPassword.classList.add('is-invalid');
@@ -431,40 +382,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
                     const targetId = btn.getAttribute('data-target');
                     const input = document.getElementById(targetId);
                     const icon = btn.querySelector('i');
-
                     if (input.type === 'password') {
                         input.type = 'text';
-                        icon.className = 'ti ti-eye-off';
+                        icon.className = 'bi bi-eye-slash';
                     } else {
                         input.type = 'password';
-                        icon.className = 'ti ti-eye';
+                        icon.className = 'bi bi-eye';
                     }
                 });
             });
 
             // Clear current-password invalid state as user types
             document.getElementById('current_password').addEventListener('input', function () {
-                if (this.value.length > 0) {
-                    this.classList.remove('is-invalid');
-                }
+                if (this.value.length > 0) this.classList.remove('is-invalid');
             });
 
             // Final submit validation
             form.addEventListener('submit', function (e) {
                 checkConfirmMatch();
-
                 if (!form.checkValidity() || confirmPassword.value !== newPassword.value) {
                     e.preventDefault();
                     e.stopPropagation();
-
                     const firstInvalid = form.querySelector(':invalid, .is-invalid');
-                    if (firstInvalid) {
-                        firstInvalid.focus();
-                    }
+                    if (firstInvalid) firstInvalid.focus();
                 }
                 form.classList.add('was-validated');
             }, false);
         })();
+    </script>
+
+    <script>
+        layout_change('false');
+        layout_theme_sidebar_change('dark');
+        change_box_container('false');
+        layout_caption_change('true');
+        layout_rtl_change('false');
+        preset_change('preset-1');
+        main_layout_change('vertical');
     </script>
 
 </body>
