@@ -1,547 +1,913 @@
-<?php include 'auth_check.php'; ?>
+<?php
+/**
+ * allteams.php
+ * Single-file Team Management: DB Connection, CRUD with Multi-Member Creation,
+ * member management modal, leader update fix, event filtering, search, and matching UI.
+ */
 
+include 'auth_check.php';
+
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
+
+/* =========================================================
+   DB CONNECTION
+   ========================================================= */
+$DB_HOST = '127.0.0.1';
+$DB_PORT = '3306';
+$DB_NAME = 'evenza';
+$DB_USER = 'root';
+$DB_PASS = '';
+
+try {
+    $pdo = new PDO(
+        "mysql:host={$DB_HOST};port={$DB_PORT};dbname={$DB_NAME};charset=utf8mb4",
+        $DB_USER,
+        $DB_PASS,
+        [
+            PDO::ATTR_ERRMODE            => PDO::ERRMODE_EXCEPTION,
+            PDO::ATTR_DEFAULT_FETCH_MODE => PDO::FETCH_ASSOC,
+            PDO::ATTR_EMULATE_PREPARES   => false,
+        ]
+    );
+} catch (PDOException $e) {
+    die('Database connection failed.');
+}
+
+/* =========================================================
+   VALIDATION HELPERS
+   ========================================================= */
+function validate_team(PDO $pdo, array $data, ?int $excludeId = null): array
+{
+    $errors = [];
+
+    $teamName  = trim($data['team_name'] ?? '');
+    $eventId   = filter_var($data['event_id'] ?? null, FILTER_VALIDATE_INT);
+    $leaderId  = filter_var($data['leader_id'] ?? null, FILTER_VALIDATE_INT);
+    $teamCode  = trim($data['team_code'] ?? '');
+    $memberIds = array_filter(array_map('intval', $data['member_ids'] ?? []));
+
+    if ($teamName === '' || mb_strlen($teamName) < 2) {
+        $errors[] = 'Team name must be at least 2 characters.';
+    } elseif (mb_strlen($teamName) > 100) {
+        $errors[] = 'Team name is too long (max 100 chars).';
+    }
+
+    if (!$eventId) {
+        $errors[] = 'Select a valid event.';
+    } else {
+        $stmt = $pdo->prepare('SELECT event_id, event_type, min_team_size, max_team_size FROM events WHERE event_id = :id');
+        $stmt->execute(['id' => $eventId]);
+        $evt = $stmt->fetch();
+
+        if (!$evt) {
+            $errors[] = 'Selected event does not exist.';
+        } elseif ($evt['event_type'] !== 'team') {
+            $errors[] = 'Selected event is a solo event. Teams can only be created for team events.';
+        } else {
+            // FIX: If updating an existing team, fetch existing count from team_members DB table
+            if ($excludeId !== null) {
+                $countStmt = $pdo->prepare('SELECT COUNT(*) FROM team_members WHERE team_id = :tid');
+                $countStmt->execute(['tid' => $excludeId]);
+                $existingMemberCount = (int)$countStmt->fetchColumn();
+
+                // If new leader is not in existing members list yet, add 1 to count
+                $chkLeader = $pdo->prepare('SELECT 1 FROM team_members WHERE team_id = :tid AND student_id = :sid');
+                $chkLeader->execute(['tid' => $excludeId, 'sid' => $leaderId]);
+                if (!$chkLeader->fetch()) {
+                    $existingMemberCount++;
+                }
+
+                $totalMembers = $existingMemberCount;
+            } else {
+                // Creating new team: count leader + selected members
+                $totalMembers = count(array_unique(array_merge([$leaderId], $memberIds)));
+            }
+
+            if ($totalMembers < $evt['min_team_size']) {
+                $errors[] = "This event requires a minimum of {$evt['min_team_size']} members (including leader).";
+            }
+            if ($totalMembers > $evt['max_team_size']) {
+                $errors[] = "This event allows a maximum of {$evt['max_team_size']} members.";
+            }
+        }
+    }
+
+    if (!$leaderId) {
+        $errors[] = 'Select a valid team leader.';
+    } else {
+        $stmt = $pdo->prepare('SELECT student_id FROM students WHERE student_id = :id');
+        $stmt->execute(['id' => $leaderId]);
+        if (!$stmt->fetch()) {
+            $errors[] = 'Selected team leader does not exist.';
+        }
+    }
+
+    if ($teamCode !== '') {
+        $sql = 'SELECT team_id FROM teams WHERE team_code = :team_code';
+        $params = ['team_code' => $teamCode];
+        if ($excludeId !== null) {
+            $sql .= ' AND team_id != :id';
+            $params['id'] = $excludeId;
+        }
+        $stmt = $pdo->prepare($sql);
+        $stmt->execute($params);
+        if ($stmt->fetch()) {
+            $errors[] = 'This team code is already in use.';
+        }
+    }
+
+    return $errors;
+}
+
+function generate_team_code(PDO $pdo, string $prefix = 'TM'): string
+{
+    do {
+        $code = strtoupper($prefix . rand(100, 999) . chr(rand(65, 90)));
+        $stmt = $pdo->prepare('SELECT team_id FROM teams WHERE team_code = :code');
+        $stmt->execute(['code' => $code]);
+    } while ($stmt->fetch());
+    return $code;
+}
+
+/* =========================================================
+   MEMBER ACTIONS (ADD / REMOVE MEMBER)
+   ========================================================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['member_action'])) {
+    $teamId    = filter_var($_POST['team_id'] ?? null, FILTER_VALIDATE_INT);
+    $studentId = filter_var($_POST['student_id'] ?? null, FILTER_VALIDATE_INT);
+
+    if ($teamId && $studentId) {
+        if ($_POST['member_action'] === 'add_member') {
+            try {
+                $stmt = $pdo->prepare('SELECT e.max_team_size, (SELECT COUNT(*) FROM team_members WHERE team_id = t.team_id) AS current_count FROM teams t JOIN events e ON t.event_id = e.event_id WHERE t.team_id = :tid');
+                $stmt->execute(['tid' => $teamId]);
+                $limitInfo = $stmt->fetch();
+
+                if ($limitInfo && $limitInfo['current_count'] >= $limitInfo['max_team_size']) {
+                    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Cannot add member. Team limit reached (' . $limitInfo['max_team_size'] . ').'];
+                } else {
+                    $ins = $pdo->prepare('INSERT IGNORE INTO team_members (team_id, student_id) VALUES (:tid, :sid)');
+                    $ins->execute(['tid' => $teamId, 'sid' => $studentId]);
+                    $_SESSION['flash'] = ['type' => 'success', 'message' => 'Team member added successfully.'];
+                }
+            } catch (PDOException $e) {
+                $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Could not add member. Student may already be in the team.'];
+            }
+        } elseif ($_POST['member_action'] === 'remove_member') {
+            $stmt = $pdo->prepare('SELECT leader_id FROM teams WHERE team_id = :tid');
+            $stmt->execute(['tid' => $teamId]);
+            $teamRow = $stmt->fetch();
+
+            if ($teamRow && (int)$teamRow['leader_id'] === $studentId) {
+                $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Cannot remove team leader. Change the team leader first before removing.'];
+            } else {
+                $del = $pdo->prepare('DELETE FROM team_members WHERE team_id = :tid AND student_id = :sid');
+                $del->execute(['tid' => $teamId, 'sid' => $studentId]);
+                $_SESSION['flash'] = ['type' => 'success', 'message' => 'Team member removed successfully.'];
+            }
+        }
+        $_SESSION['reopen_modal'] = 'membersModal' . $teamId;
+    } else {
+        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Invalid team or student selected.'];
+    }
+
+    header('Location: allteams.php');
+    exit;
+}
+
+/* =========================================================
+   DELETE TEAM
+   ========================================================= */
+if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete') {
+    $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
+
+    if ($id) {
+        $stmt = $pdo->prepare('SELECT team_id FROM teams WHERE team_id = :id');
+        $stmt->execute(['id' => $id]);
+        if ($stmt->fetch()) {
+            $pdo->prepare('DELETE FROM teams WHERE team_id = :id')->execute(['id' => $id]);
+            $_SESSION['flash'] = ['type' => 'success', 'message' => 'Team deleted successfully.'];
+        } else {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Team not found.'];
+        }
+    } else {
+        $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Invalid team ID.'];
+    }
+
+    header('Location: allteams.php');
+    exit;
+}
+
+/* =========================================================
+   CREATE / UPDATE TEAM
+   ========================================================= */
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
+
+    if ($_POST['form_action'] === 'create') {
+        $errors = validate_team($pdo, $_POST);
+
+        if (empty($errors)) {
+            try {
+                $teamCode = trim($_POST['team_code'] ?? '');
+                if ($teamCode === '') {
+                    $teamCode = generate_team_code($pdo);
+                }
+
+                $leaderId  = (int)$_POST['leader_id'];
+                $memberIds = array_filter(array_map('intval', $_POST['member_ids'] ?? []));
+                $allMembers = array_unique(array_merge([$leaderId], $memberIds));
+
+                $pdo->beginTransaction();
+
+                $stmt = $pdo->prepare(
+                    'INSERT INTO teams (event_id, leader_id, team_name, team_code, created_at)
+                     VALUES (:event_id, :leader_id, :team_name, :team_code, NOW())'
+                );
+                $stmt->execute([
+                    'event_id'  => (int)$_POST['event_id'],
+                    'leader_id' => $leaderId,
+                    'team_name' => trim($_POST['team_name']),
+                    'team_code' => $teamCode,
+                ]);
+
+                $newTeamId = (int)$pdo->lastInsertId();
+
+                $stmtMember = $pdo->prepare('INSERT IGNORE INTO team_members (team_id, student_id) VALUES (:tid, :sid)');
+                foreach ($allMembers as $sid) {
+                    $stmtMember->execute(['tid' => $newTeamId, 'sid' => $sid]);
+                }
+
+                $stmtReg = $pdo->prepare(
+                    'INSERT INTO registrations (event_id, student_id, team_id, registration_type, status, registered_at)
+                     VALUES (:event_id, :student_id, :team_id, "team", "approved", NOW())'
+                );
+                $stmtReg->execute([
+                    'event_id'   => (int)$_POST['event_id'],
+                    'student_id' => $leaderId,
+                    'team_id'    => $newTeamId,
+                ]);
+
+                $pdo->commit();
+
+                $_SESSION['flash'] = ['type' => 'success', 'message' => 'Team created successfully with ' . count($allMembers) . ' members.'];
+            } catch (PDOException $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                $errors[] = 'Could not save team. Database error.';
+            }
+        }
+
+        if (!empty($errors)) {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => implode(' ', $errors)];
+            $_SESSION['reopen_modal'] = 'addTeamModal';
+        }
+
+        header('Location: allteams.php');
+        exit;
+    }
+
+    if ($_POST['form_action'] === 'update') {
+        $id = filter_var($_POST['id'] ?? null, FILTER_VALIDATE_INT);
+        $existingStmt = $pdo->prepare('SELECT * FROM teams WHERE team_id = :id');
+        $existingStmt->execute(['id' => $id]);
+        $existing = $existingStmt->fetch();
+
+        if (!$id || !$existing) {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Team not found.'];
+            header('Location: allteams.php');
+            exit;
+        }
+
+        $errors = validate_team($pdo, $_POST, $id);
+
+        if (empty($errors)) {
+            try {
+                $pdo->beginTransaction();
+
+                $teamCode = trim($_POST['team_code'] ?? '');
+                if ($teamCode === '') {
+                    $teamCode = $existing['team_code'];
+                }
+
+                $newLeaderId = (int)$_POST['leader_id'];
+
+                $stmt = $pdo->prepare(
+                    'UPDATE teams
+                     SET event_id = :event_id, leader_id = :leader_id, team_name = :team_name, team_code = :team_code
+                     WHERE team_id = :id'
+                );
+                $stmt->execute([
+                    'event_id'  => (int)$_POST['event_id'],
+                    'leader_id' => $newLeaderId,
+                    'team_name' => trim($_POST['team_name']),
+                    'team_code' => $teamCode,
+                    'id'        => $id,
+                ]);
+
+                // Automatically ensure the new leader exists in the team_members table
+                $stmtMember = $pdo->prepare('INSERT IGNORE INTO team_members (team_id, student_id) VALUES (:tid, :sid)');
+                $stmtMember->execute(['tid' => $id, 'sid' => $newLeaderId]);
+
+                $pdo->commit();
+
+                $_SESSION['flash'] = ['type' => 'success', 'message' => 'Team updated successfully.'];
+            } catch (PDOException $e) {
+                if ($pdo->inTransaction()) $pdo->rollBack();
+                $errors[] = 'Could not update team.';
+            }
+        }
+
+        if (!empty($errors)) {
+            $_SESSION['flash'] = ['type' => 'danger', 'message' => implode(' ', $errors)];
+            $_SESSION['reopen_modal'] = 'editTeamModal' . $id;
+        }
+
+        header('Location: allteams.php');
+        exit;
+    }
+}
+
+/* =========================================================
+   DATA FETCHING
+   ========================================================= */
+$teamsSql = '
+    SELECT 
+        t.*,
+        e.title AS event_title,
+        e.min_team_size,
+        e.max_team_size,
+        s.name AS leader_name,
+        s.email AS leader_email,
+        c.name AS college_name,
+        (SELECT COUNT(*) FROM team_members tm WHERE tm.team_id = t.team_id) AS total_members
+    FROM teams t
+    JOIN events e ON t.event_id = e.event_id
+    JOIN students s ON t.leader_id = s.student_id
+    LEFT JOIN colleges c ON s.college_id = c.college_id
+    ORDER BY t.created_at DESC';
+
+$teams = $pdo->query($teamsSql)->fetchAll();
+
+$events   = $pdo->query("SELECT event_id, title, event_type, min_team_size, max_team_size FROM events ORDER BY title ASC")->fetchAll();
+$students = $pdo->query("SELECT s.student_id, s.name, s.enrollment_no, c.name as college_name FROM students s LEFT JOIN colleges c ON s.college_id = c.college_id ORDER BY s.name ASC")->fetchAll();
+
+$total = count($teams);
+
+$flash = $_SESSION['flash'] ?? null;
+$reopenModal = $_SESSION['reopen_modal'] ?? null;
+unset($_SESSION['flash'], $_SESSION['reopen_modal']);
+?>
 <!doctype html>
-<html lang="en" data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" dir="ltr" data-pc-theme="light">
+<html lang="en">
 
 <head>
+    <title>All Teams | Evenza Admin</title>
 
-<title>Admin | All Teams</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
 
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 
-<link rel="icon" href="assets/images/favicon.svg" type="image/x-icon" />
-
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-
-<link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
-
-<link rel="stylesheet" href="assets/fonts/phosphor/duotone/style.css" />
-<link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
-<link rel="stylesheet" href="assets/fonts/feather.css" />
-<link rel="stylesheet" href="assets/fonts/fontawesome.css" />
-
-<link rel="stylesheet" href="assets/css/style.css" id="main-style-link" />
-
+    <style>
+        body { background-color: #f5f7fb; }
+        .page-title { font-weight: 600; color: #1f2937; }
+        .page-subtitle { color: #6b7280; font-size: 14px; }
+        .custom-breadcrumb { display: flex; align-items: center; gap: 12px; list-style: none; padding: 0; margin: 0; font-size: 14px; }
+        .custom-breadcrumb li { color: #6b7280; }
+        .custom-breadcrumb li a { text-decoration: none; color: #4f46e5; }
+        .custom-breadcrumb li:not(:last-child)::after { content: "/"; margin-left: 12px; color: #adb5bd; }
+        .stat-card { border: 0; border-radius: 14px; transition: 0.3s ease; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important; }
+        .stat-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 22px; }
+        .icon-primary { background: #e8edff; color: #4f46e5; }
+        .icon-success { background: #e7f8ef; color: #198754; }
+        .icon-warning { background: #fef3c7; color: #d97706; }
+        .main-card { border: 0; border-radius: 16px; overflow: hidden; }
+        .main-card-header { background: #ffffff; padding: 20px 24px; border-bottom: 1px solid #edf0f5; }
+        .search-box { position: relative; }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+        .search-box input { padding-left: 40px; border-radius: 10px; }
+        .table thead th { background: #f8f9fc; color: #6b7280; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 15px; }
+        .table tbody td { padding: 15px; vertical-align: middle; color: #374151; }
+        .table tbody tr { transition: 0.2s ease; }
+        .table tbody tr:hover { background-color: #f8faff; }
+        .team-name { font-weight: 600; color: #1f2937; }
+        .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+        @media (max-width: 768px) {
+            .main-card-header { padding: 16px; }
+            .table { min-width: 900px; }
+        }
+    </style>
 </head>
-
 
 <body>
 
-
-<!-- Loader -->
-
-<div class="loader-bg fixed inset-0 bg-white dark:bg-themedark-cardbg z-[1034]">
-
-<div class="loader-track h-[5px] w-full inline-block absolute overflow-hidden top-0">
-
-<div class="loader-fill w-[300px] h-[5px] bg-primary-500 absolute top-0 left-0"></div>
-
-</div>
-
-</div>
-
-
-
-<?php include_once("Sidebar.php"); ?>
-
-<?php include_once("Header.php"); ?>
-
-
-
-
-
-<div class="pc-container">
-
-<div class="pc-content">
-
-
-
-<!-- Page Header -->
-
-<div class="page-header">
-
-<div class="page-block">
-
-
-
-<div class="page-header-title">
-
-<h5 class="mb-0 font-medium">
-All Teams
-</h5>
-
-</div>
-
-
-
-
-<ul class="breadcrumb">
-
-
-<li class="breadcrumb-item">
-
-<a href="Index.php">
-Home
-</a>
-
-</li>
-
-
-<li class="breadcrumb-item">
-Team Management
-</li>
-
-
-<li class="breadcrumb-item">
-All Teams
-</li>
-
-
-</ul>
-
-
-
-</div>
-
-</div>
-
-
-
-
-
-
-
-<!-- Card -->
-
-
-<div class="card">
-
-
-<div class="card-header">
-
-
-<div class="row align-items-center">
-
-
-<div class="col-md-6">
-
-
-<h5 class="mb-0">
-Team List
-</h5>
-
-
-</div>
-
-
-
-
-<div class="col-md-6 text-end">
-
-
-<input 
-type="text"
-class="form-control d-inline-block w-50"
-placeholder="Search team">
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-<div class="card-body">
-
-
-<div class="table-responsive">
-
-
-<table class="table table-hover align-middle">
-
-
-<thead class="table-light">
-
-
-<tr>
-
-
-<th>#</th>
-
-<th>Team ID</th>
-
-<th>Team Name</th>
-
-<th>Team Code</th>
-
-<th>Event</th>
-
-<th>Leader</th>
-
-<th>Members</th>
-
-<th>Created Date</th>
-
-<th>Action</th>
-
-
-</tr>
-
-
-</thead>
-
-
-
-
-<tbody>
-
-
-
-
-<tr>
-
-
-<td>
-1
-</td>
-
-
-<td>
-101
-</td>
-
-
-<td>
-Code Warriors
-</td>
-
-
-<td>
-
-<span class="badge bg-primary">
-CW101
-</span>
-
-</td>
-
-
-
-<td>
-Hackathon
-</td>
-
-
-
-<td>
-Rahul Patel
-</td>
-
-
-
-<td>
-
-<span class="badge bg-info">
-5 Members
-</span>
-
-</td>
-
-
-
-<td>
-15-07-2026
-</td>
-
-
-
-<td>
-
-
-
-<a href="#" class="btn btn-sm btn-info">
-
-<i class="ti ti-eye"></i>
-
-</a>
-
-
-
-<a href="#" class="btn btn-sm btn-primary">
-
-<i class="ti ti-users"></i>
-
-</a>
-
-
-
-</td>
-
-
-</tr>
-
-
-
-
-
-
-
-<tr>
-
-
-<td>
-2
-</td>
-
-
-<td>
-102
-</td>
-
-
-<td>
-Pixel Masters
-</td>
-
-
-<td>
-
-<span class="badge bg-primary">
-PM102
-</span>
-
-</td>
-
-
-
-<td>
-Gaming Tournament
-</td>
-
-
-
-<td>
-Amit Joshi
-</td>
-
-
-
-<td>
-
-<span class="badge bg-info">
-4 Members
-</span>
-
-</td>
-
-
-
-<td>
-16-07-2026
-</td>
-
-
-
-<td>
-
-
-
-<a href="#" class="btn btn-sm btn-info">
-
-<i class="ti ti-eye"></i>
-
-</a>
-
-
-
-<a href="#" class="btn btn-sm btn-primary">
-
-<i class="ti ti-users"></i>
-
-</a>
-
-
-
-</td>
-
-
-</tr>
-
-
-
-
-
-
-
-
-<tr>
-
-
-<td>
-3
-</td>
-
-
-<td>
-103
-</td>
-
-
-<td>
-Rhythm Squad
-</td>
-
-
-<td>
-
-<span class="badge bg-primary">
-RS103
-</span>
-
-</td>
-
-
-
-<td>
-Dance Competition
-</td>
-
-
-
-<td>
-Priya Shah
-</td>
-
-
-
-<td>
-
-<span class="badge bg-info">
-6 Members
-</span>
-
-</td>
-
-
-
-<td>
-17-07-2026
-</td>
-
-
-
-<td>
-
-
-
-<a href="#" class="btn btn-sm btn-info">
-
-<i class="ti ti-eye"></i>
-
-</a>
-
-
-
-<a href="#" class="btn btn-sm btn-primary">
-
-<i class="ti ti-users"></i>
-
-</a>
-
-
-
-</td>
-
-
-</tr>
-
-
-
-
-
-
-</tbody>
-
-
-</table>
-
-
-</div>
-
-
-</div>
-
-
-</div>
-
-
-
-
-
-
-</div>
-
-</div>
-
-
-
-
-
-<?php include_once("Footer.php"); ?>
-
-
-
-
-
-
-<!-- Required Js -->
-
-
-<script src="assets/js/plugins/simplebar.min.js"></script>
-
-<script src="assets/js/plugins/popper.min.js"></script>
-
-<script src="assets/js/icon/custom-icon.js"></script>
-
-<script src="assets/js/plugins/feather.min.js"></script>
-
-<script src="assets/js/component.js"></script>
-
-<script src="assets/js/theme.js"></script>
-
-<script src="assets/js/script.js"></script>
-
-
-
-
-<script>
-
-layout_change('false');
-
-layout_theme_sidebar_change('dark');
-
-change_box_container('false');
-
-layout_caption_change('true');
-
-layout_rtl_change('false');
-
-preset_change('preset-1');
-
-main_layout_change('vertical');
-
-</script>
-
-
-
+    <div class="loader-bg fixed inset-0 bg-white dark:bg-themedark-cardbg z-[1034]">
+        <div class="loader-track h-[5px] w-full inline-block absolute overflow-hidden top-0">
+            <div class="loader-fill w-[300px] h-[5px] bg-primary-500 absolute top-0 left-0"></div>
+        </div>
+    </div>
+
+    <?php include_once("Sidebar.php"); ?>
+    <?php include_once("Header.php"); ?>
+
+    <div class="pc-container">
+        <div class="pc-content">
+
+            <?php if ($flash): ?>
+                <div class="alert alert-<?= htmlspecialchars($flash['type']) ?> alert-dismissible fade show" role="alert">
+                    <?= htmlspecialchars($flash['message']) ?>
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            <?php endif; ?>
+
+            <!-- Page Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="page-title mb-1">All Teams</h4>
+                    <p class="page-subtitle mb-3">Manage teams registered on the Evenza platform</p>
+                    <ul class="custom-breadcrumb">
+                        <li><a href="Index.php">Home</a></li>
+                        <li>Team Management</li>
+                        <li>All Teams</li>
+                    </ul>
+                </div>
+
+                <div class="mt-3 mt-md-0">
+                    <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#addTeamModal">
+                        <i class="bi bi-plus-lg me-2"></i> Add Team
+                    </button>
+                </div>
+            </div>
+
+            <!-- Statistics -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="card stat-card shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon icon-primary me-3"><i class="bi bi-people-fill"></i></div>
+                            <div>
+                                <small class="text-muted">Total Teams</small>
+                                <h4 class="mb-0 mt-1"><?= $total ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card stat-card shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon icon-success me-3"><i class="bi bi-trophy-fill"></i></div>
+                            <div>
+                                <small class="text-muted">Total Events</small>
+                                <h4 class="mb-0 mt-1"><?= count($events) ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card stat-card shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon icon-warning me-3"><i class="bi bi-person-fill-check"></i></div>
+                            <div>
+                                <small class="text-muted">Available Students</small>
+                                <h4 class="mb-0 mt-1"><?= count($students) ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Team Table -->
+            <div class="card main-card shadow-sm">
+
+                <div class="main-card-header">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-5">
+                            <h5 class="mb-1">Team List</h5>
+                            <small class="text-muted">View and manage all teams and members</small>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="row g-2 justify-content-md-end">
+                                <div class="col-md-7">
+                                    <div class="search-box">
+                                        <i class="bi bi-search"></i>
+                                        <input type="text" class="form-control" id="searchTeam" placeholder="Search team...">
+                                    </div>
+                                </div>
+                                <div class="col-md-5">
+                                    <select class="form-select" id="eventFilter">
+                                        <option value="">All Events</option>
+                                        <?php foreach ($events as $ev): ?>
+                                            <option value="<?= htmlspecialchars($ev['title']) ?>"><?= htmlspecialchars($ev['title']) ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="teamTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Team Details</th>
+                                    <th>Team Code</th>
+                                    <th>Event</th>
+                                    <th>Leader</th>
+                                    <th>Members</th>
+                                    <th>Created Date</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                <?php if ($total === 0): ?>
+                                    <tr>
+                                        <td colspan="8" class="text-center text-muted py-4">
+                                            No teams yet. Click "Add Team" to create one.
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($teams as $i => $t): ?>
+                                        <tr>
+                                            <td><?= $i + 1 ?></td>
+
+                                            <td>
+                                                <div class="team-name"><?= htmlspecialchars($t['team_name']) ?></div>
+                                                <small class="text-muted">ID: #<?= (int)$t['team_id'] ?></small>
+                                            </td>
+
+                                            <td>
+                                                <span class="badge bg-primary-subtle text-primary fw-bold">
+                                                    <?= htmlspecialchars($t['team_code']) ?>
+                                                </span>
+                                            </td>
+
+                                            <td><?= htmlspecialchars($t['event_title']) ?></td>
+
+                                            <td>
+                                                <div class="fw-semibold"><?= htmlspecialchars($t['leader_name']) ?></div>
+                                                <small class="text-muted"><?= htmlspecialchars($t['leader_email']) ?></small>
+                                            </td>
+
+                                            <td>
+                                                <button type="button" class="btn btn-sm btn-outline-info rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#membersModal<?= (int)$t['team_id'] ?>">
+                                                    <i class="bi bi-people me-1"></i> <?= $t['total_members'] ?> / <?= $t['max_team_size'] ?>
+                                                </button>
+                                            </td>
+
+                                            <td><?= date('d M Y', strtotime($t['created_at'])) ?></td>
+
+                                            <td class="text-end">
+                                                <a href="teamdetails.php?id=<?= (int)$t['team_id'] ?>" class="btn btn-light action-btn me-1" title="View Details">
+                                                    <i class="bi bi-eye text-info"></i>
+                                                </a>
+                                                <button type="button" class="btn btn-light action-btn me-1" title="Edit" data-bs-toggle="modal" data-bs-target="#editTeamModal<?= (int)$t['team_id'] ?>">
+                                                    <i class="bi bi-pencil text-primary"></i>
+                                                </button>
+                                                <button class="btn btn-light action-btn" title="Delete" onclick="deleteTeam(<?= (int)$t['team_id'] ?>)">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center">
+                    <small class="text-muted">Showing <?= $total ?> of <?= $total ?> teams</small>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- ADD TEAM MODAL -->
+    <div class="modal fade" id="addTeamModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" class="needs-validation" novalidate>
+                    <input type="hidden" name="form_action" value="create">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add Team</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+
+                            <div class="col-md-6">
+                                <label class="form-label">Team Name</label>
+                                <input type="text" class="form-control" name="team_name" required minlength="2" maxlength="100">
+                                <div class="invalid-feedback">Enter team name.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Team Code <span class="text-muted">(Optional)</span></label>
+                                <input type="text" class="form-control" name="team_code" maxlength="30">
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Event</label>
+                                <select class="form-select" name="event_id" required>
+                                    <option value="">Choose Event</option>
+                                    <?php if (empty($events)): ?>
+                                        <option value="" disabled>No events found in database</option>
+                                    <?php else: ?>
+                                        <?php foreach ($events as $ev): ?>
+                                            <?php $isTeamEvent = $ev['event_type'] === 'team'; ?>
+                                            <option value="<?= (int)$ev['event_id'] ?>" <?= !$isTeamEvent ? 'disabled' : '' ?>>
+                                                <?= htmlspecialchars($ev['title']) ?> 
+                                                <?= $isTeamEvent 
+                                                    ? "(Team Event: {$ev['min_team_size']}-{$ev['max_team_size']} members)" 
+                                                    : "(Solo Event - Cannot attach team)" ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </select>
+                                <div class="invalid-feedback">Select a team event.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Team Leader</label>
+                                <select class="form-select" name="leader_id" required>
+                                    <option value="">Choose Student Leader</option>
+                                    <?php foreach ($students as $st): ?>
+                                        <option value="<?= (int)$st['student_id'] ?>"><?= htmlspecialchars($st['name']) ?> (<?= htmlspecialchars($st['enrollment_no'] ?? 'No Enr') ?>)</option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="invalid-feedback">Select a team leader.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">
+                                    Additional Team Members <span class="text-muted">(Hold Ctrl/Cmd to select multiple)</span>
+                                </label>
+                                <select class="form-select" name="member_ids[]" multiple style="height: 120px;">
+                                    <?php foreach ($students as $st): ?>
+                                        <option value="<?= (int)$st['student_id'] ?>">
+                                            <?= htmlspecialchars($st['name']) ?> (<?= htmlspecialchars($st['enrollment_no'] ?? 'No Enr') ?> - <?= htmlspecialchars($st['college_name'] ?? 'No College') ?>)
+                                        </option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <small class="text-muted mt-1 d-block">The team leader selected above will automatically be added as a member.</small>
+                            </div>
+
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Team</button>
+                    </div>
+
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- EDIT & POST-CREATION MEMBER MODALS -->
+    <?php foreach ($teams as $t): ?>
+        <div class="modal fade" id="editTeamModal<?= (int)$t['team_id'] ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <form method="POST" class="needs-validation" novalidate>
+                        <input type="hidden" name="form_action" value="update">
+                        <input type="hidden" name="id" value="<?= (int)$t['team_id'] ?>">
+
+                        <div class="modal-header">
+                            <h5 class="modal-title">Edit Team Details</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+
+                        <div class="modal-body">
+                            <div class="row g-3">
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Team Name</label>
+                                    <input type="text" class="form-control" name="team_name" required minlength="2" value="<?= htmlspecialchars($t['team_name']) ?>">
+                                    <div class="invalid-feedback">Enter team name.</div>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Team Code</label>
+                                    <input type="text" class="form-control" name="team_code" value="<?= htmlspecialchars($t['team_code']) ?>">
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Event</label>
+                                    <select class="form-select" name="event_id" required>
+                                        <?php foreach ($events as $ev): ?>
+                                            <?php if ($ev['event_type'] === 'team' || (int)$ev['event_id'] === (int)$t['event_id']): ?>
+                                                <option value="<?= (int)$ev['event_id'] ?>" <?= (int)$ev['event_id'] === (int)$t['event_id'] ? 'selected' : '' ?>>
+                                                    <?= htmlspecialchars($ev['title']) ?>
+                                                </option>
+                                            <?php endif; ?>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                                <div class="col-md-6">
+                                    <label class="form-label">Team Leader</label>
+                                    <select class="form-select" name="leader_id" required>
+                                        <?php foreach ($students as $st): ?>
+                                            <option value="<?= (int)$st['student_id'] ?>" <?= (int)$st['student_id'] === (int)$t['leader_id'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($st['name']) ?> (<?= htmlspecialchars($st['enrollment_no'] ?? 'No Enr') ?>)
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                </div>
+
+                            </div>
+                        </div>
+
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                            <button type="submit" class="btn btn-primary">Update Team</button>
+                        </div>
+
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <?php
+            $mStmt = $pdo->prepare('
+                SELECT tm.student_id, s.name, s.email, s.enrollment_no, c.name as college_name 
+                FROM team_members tm
+                JOIN students s ON tm.student_id = s.student_id
+                LEFT JOIN colleges c ON s.college_id = c.college_id
+                WHERE tm.team_id = :tid');
+            $mStmt->execute(['tid' => $t['team_id']]);
+            $currentMembers = $mStmt->fetchAll();
+            $currentMemberIds = array_column($currentMembers, 'student_id');
+        ?>
+        <div class="modal fade" id="membersModal<?= (int)$t['team_id'] ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <div>
+                            <h5 class="modal-title">Manage Members - <?= htmlspecialchars($t['team_name']) ?></h5>
+                            <small class="text-muted">Event Limit: <?= $t['min_team_size'] ?> to <?= $t['max_team_size'] ?> members</small>
+                        </div>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="POST" class="row g-2 mb-4 bg-light p-3 rounded">
+                            <input type="hidden" name="member_action" value="add_member">
+                            <input type="hidden" name="team_id" value="<?= (int)$t['team_id'] ?>">
+                            <div class="col-md-9">
+                                <select class="form-select" name="student_id" required>
+                                    <option value="">Select Student to Add...</option>
+                                    <?php foreach ($students as $st): ?>
+                                        <?php if (!in_array($st['student_id'], $currentMemberIds)): ?>
+                                            <option value="<?= (int)$st['student_id'] ?>">
+                                                <?= htmlspecialchars($st['name']) ?> (<?= htmlspecialchars($st['enrollment_no'] ?? 'No Enr') ?> - <?= htmlspecialchars($st['college_name'] ?? 'No College') ?>)
+                                            </option>
+                                        <?php endif; ?>
+                                    <?php endforeach; ?>
+                                </select>
+                            </div>
+                            <div class="col-md-3">
+                                <button type="submit" class="btn btn-success w-100" <?= count($currentMembers) >= $t['max_team_size'] ? 'disabled' : '' ?>>
+                                    <i class="bi bi-person-plus me-1"></i> Add
+                                </button>
+                            </div>
+                        </form>
+
+                        <div class="table-responsive">
+                            <table class="table table-hover align-middle mb-0">
+                                <thead>
+                                    <tr>
+                                        <th>Student</th>
+                                        <th>Enrollment</th>
+                                        <th>Role</th>
+                                        <th class="text-center" style="width: 80px;">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <?php if (empty($currentMembers)): ?>
+                                        <tr>
+                                            <td colspan="4" class="text-center text-muted py-3">No members added yet.</td>
+                                        </tr>
+                                    <?php else: ?>
+                                        <?php foreach ($currentMembers as $m): ?>
+                                            <?php $isLeader = (int)$m['student_id'] === (int)$t['leader_id']; ?>
+                                            <tr>
+                                                <td>
+                                                    <div class="fw-semibold text-dark"><?= htmlspecialchars($m['name']) ?></div>
+                                                    <small class="text-muted"><?= htmlspecialchars($m['email']) ?></small>
+                                                </td>
+                                                <td><?= htmlspecialchars($m['enrollment_no'] ?? 'N/A') ?></td>
+                                                <td>
+                                                    <?= $isLeader 
+                                                        ? '<span class="badge bg-warning text-dark"><i class="bi bi-star-fill me-1"></i> Leader</span>' 
+                                                        : '<span class="badge bg-secondary">Member</span>' ?>
+                                                </td>
+                                                <td class="text-center">
+                                                    <?php if (!$isLeader): ?>
+                                                        <form method="POST" style="display:inline;" onsubmit="return confirm('Remove this member from team?');">
+                                                            <input type="hidden" name="member_action" value="remove_member">
+                                                            <input type="hidden" name="team_id" value="<?= (int)$t['team_id'] ?>">
+                                                            <input type="hidden" name="student_id" value="<?= (int)$m['student_id'] ?>">
+                                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                                <i class="bi bi-x-lg"></i>
+                                                            </button>
+                                                        </form>
+                                                    <?php else: ?>
+                                                        <button class="btn btn-sm btn-light text-muted" disabled title="Leader cannot be removed"><i class="bi bi-lock"></i></button>
+                                                    <?php endif; ?>
+                                                </td>
+                                            </tr>
+                                        <?php endforeach; ?>
+                                    <?php endif; ?>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    <?php endforeach; ?>
+
+    <?php include_once("Footer.php"); ?>
+
+    <script src="assets/js/plugins/simplebar.min.js"></script>
+    <script src="assets/js/plugins/popper.min.js"></script>
+    <script src="assets/js/icon/custom-icon.js"></script>
+    <script src="assets/js/plugins/feather.min.js"></script>
+    <script src="assets/js/component.js"></script>
+    <script src="assets/js/theme.js"></script>
+    <script src="assets/js/script.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+    <script>
+        document.querySelectorAll(".needs-validation").forEach(form => {
+            form.addEventListener("submit", function(e) {
+                if (!form.checkValidity()) {
+                    e.preventDefault();
+                    e.stopPropagation();
+                }
+                form.classList.add("was-validated");
+            });
+        });
+
+        <?php if ($reopenModal): ?>
+            document.addEventListener("DOMContentLoaded", function() {
+                const modalEl = document.getElementById(<?= json_encode($reopenModal) ?>);
+                if (modalEl) new bootstrap.Modal(modalEl).show();
+            });
+        <?php endif; ?>
+
+        const searchInput = document.getElementById("searchTeam");
+        const eventFilter = document.getElementById("eventFilter");
+        const rows = document.querySelectorAll("#teamTable tbody tr");
+
+        function filterTeams() {
+            const searchValue = searchInput.value.toLowerCase();
+            const eventValue = eventFilter.value.toLowerCase();
+
+            rows.forEach(row => {
+                if (row.cells.length < 8) return;
+                const rowText = row.innerText.toLowerCase();
+                const eventText = row.cells[3].innerText.toLowerCase().trim();
+                row.style.display = (rowText.includes(searchValue) && (eventValue === "" || eventText === eventValue)) ? "" : "none";
+            });
+        }
+
+        searchInput.addEventListener("keyup", filterTeams);
+        eventFilter.addEventListener("change", filterTeams);
+
+        function deleteTeam(id) {
+            if (confirm("Are you sure you want to delete this team?")) {
+                window.location.href = "allteams.php?action=delete&id=" + id;
+            }
+        }
+    </script>
+
+    <script>
+        layout_change('false');
+        layout_theme_sidebar_change('dark');
+        change_box_container('false');
+        layout_caption_change('true');
+        layout_rtl_change('false');
+        preset_change('preset-1');
+        main_layout_change('vertical');
+    </script>
 
 </body>
-
 </html>
