@@ -430,7 +430,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 }
 
 $students = $pdo->query('SELECT s.*, c.name AS college_name FROM students s LEFT JOIN colleges c ON c.college_id = s.college_id ORDER BY s.created_at DESC')->fetchAll();
-$colleges = $pdo->query('SELECT college_id, name FROM colleges ORDER BY name ASC')->fetchAll();
+$colleges = $pdo->query("
+    SELECT college_id, name 
+    FROM colleges 
+    WHERE status = 'active'
+    ORDER BY name ASC
+")->fetchAll();
 $total    = count($students);
 $active   = count(array_filter($students, fn($s) => $s['account_status'] === 'active'));
 $inactive = $total - $active;
@@ -463,11 +468,11 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         .uni-page {
             --ink: #1B2430;
             --ink-2: #45505E;
-            
+
             --accent: #4f46e5;
             --accent-hover: #3b31d1;
             --accent-bg: #e8edff;
-            
+
             --violet: #6C5DD3;
             --violet-bg: #EFECFB;
             --bg: #F4F6FA;
@@ -1358,8 +1363,13 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
                 fetch("allstudents.php?action=toggle_status", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ id: studentId, status: isActive ? "active" : "inactive" })
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            id: studentId,
+                            status: isActive ? "active" : "inactive"
+                        })
                     })
                     .then(res => {
                         if (!res.ok) throw new Error("Request failed");
@@ -1375,7 +1385,9 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                         filterStudents();
                         alert("Could not update status. Please try again.");
                     })
-                    .finally(() => { toggle.disabled = false; });
+                    .finally(() => {
+                        toggle.disabled = false;
+                    });
             });
         });
 
@@ -1438,8 +1450,14 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 try {
                     const res = await fetch("allstudents.php?action=check_unique", {
                         method: "POST",
-                        headers: { "Content-Type": "application/json" },
-                        body: JSON.stringify({ field, value, id: idField ? idField.value : null })
+                        headers: {
+                            "Content-Type": "application/json"
+                        },
+                        body: JSON.stringify({
+                            field,
+                            value,
+                            id: idField ? idField.value : null
+                        })
                     });
                     if (!res.ok) throw new Error("Request failed");
                     const data = await res.json();
@@ -1464,10 +1482,13 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     e.preventDefault();
                     e.stopPropagation();
                     form.classList.add("was-validated");
-                    asyncFields.forEach(el => { if (el.dataset.asyncState === "checking") runCheck(el); });
+                    asyncFields.forEach(el => {
+                        if (el.dataset.asyncState === "checking") runCheck(el);
+                    });
                 }
             });
         })();
     </script>
 </body>
+
 </html>
