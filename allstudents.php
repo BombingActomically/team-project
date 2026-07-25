@@ -445,440 +445,59 @@ $reopenModal = $_SESSION['reopen_modal'] ?? null;
 unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 ?>
 <!doctype html>
-<html lang="en" data-pc-preset="preset-1" data-pc-sidebar-caption="true" data-pc-direction="ltr" dir="ltr">
+<html lang="en">
 
 <head>
-    <title>All Students | Admin</title>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=0, minimal-ui" />
-    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
 
-    <link rel="icon" href="assets/images/favicon.svg" type="image/x-icon" />
+    <title>All Students | Evenza Admin</title>
+
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet" />
-    <link rel="stylesheet" href="assets/fonts/phosphor/duotone/style.css" />
-    <link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
-    <link rel="stylesheet" href="assets/fonts/feather.css" />
-    <link rel="stylesheet" href="assets/fonts/fontawesome.css" />
-    <link rel="stylesheet" href="assets/fonts/material.css" />
-    <link rel="stylesheet" href="assets/css/style.css" id="main-style-link" />
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="assets/css/style.css">
 
     <style>
-        .uni-page {
-            --ink: #1B2430;
-            --ink-2: #45505E;
-
-            --accent: #4f46e5;
-            --accent-hover: #3b31d1;
-            --accent-bg: #e8edff;
-
-            --violet: #6C5DD3;
-            --violet-bg: #EFECFB;
-            --bg: #F4F6FA;
-            --card: #FFFFFF;
-            --success: #1AA260;
-            --success-bg: #E7F8EF;
-            --danger: #E24C4B;
-            --danger-bg: #FCEAEA;
-            --warning: #E0A63E;
-            --warning-bg: #FBF3E0;
-            --border: #E7EAF0;
-            --muted: #8A94A6;
-            --th-bg: #F8F9FC;
-            --tr-hover: #FAFBFD;
-            --badge-bg: #EEF1F6;
-            --btn-action-bg: #ffffff;
-            --btn-edit-hover: #EAF1FE;
-            --pagination-disabled-bg: #ffffff;
-
-            background: var(--bg);
-            padding-bottom: 8px;
-        }
-
-        .uni-page,
-        .uni-page .table,
-        .uni-page .form-control,
-        .uni-page .btn,
-        .uni-page h1,
-        .uni-page h2,
-        .uni-page h5 {
-            font-family: 'Inter', -apple-system, sans-serif;
-        }
-
-        .uni-title {
-            font-weight: 600;
-            font-size: 26px;
-            color: var(--ink);
-            margin-bottom: 2px;
-            letter-spacing: -0.01em;
-        }
-
-        .uni-card-sub-top {
-            font-size: 13.5px;
-            color: var(--muted);
-            margin-top: 2px;
-        }
-
-        .uni-breadcrumb {
-            list-style: none;
-            display: flex;
-            gap: 6px;
-            padding: 0;
-            margin: 10px 0 0;
-            font-size: 13px;
-            color: var(--muted);
-        }
-
-        .uni-breadcrumb li+li::before {
-            content: "/";
-            margin-right: 6px;
-            color: var(--border);
-        }
-
-        .uni-breadcrumb li {
-            display: flex;
-            gap: 6px;
-        }
-
-        .uni-breadcrumb a {
-            color: var(--accent);
-            text-decoration: none;
-        }
-
-        .uni-breadcrumb a:hover {
-            color: var(--accent-hover);
-        }
-
-        .uni-stat {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 20px 22px;
-            display: flex;
-            align-items: center;
-            gap: 16px;
-            transition: box-shadow .2s ease, transform .2s ease;
-        }
-
-        .uni-stat:hover {
-            box-shadow: 0 10px 24px rgba(20, 30, 60, 0.06);
-            transform: translateY(-2px);
-        }
-
-        .uni-stat--total {
-            --stat-accent: var(--violet);
-            --stat-accent-bg: var(--violet-bg);
-        }
-
-        .uni-stat--active {
-            --stat-accent: var(--success);
-            --stat-accent-bg: var(--success-bg);
-        }
-
-        .uni-stat--inactive {
-            --stat-accent: var(--danger);
-            --stat-accent-bg: var(--danger-bg);
-        }
-
-        .uni-stat-icon {
-            width: 48px;
-            height: 48px;
-            border-radius: 12px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 20px;
-            color: var(--stat-accent, var(--accent));
-            background: var(--stat-accent-bg, var(--accent-bg));
-            flex-shrink: 0;
-        }
-
-        .uni-stat-label {
-            font-size: 13px;
-            font-weight: 500;
-            color: var(--muted);
-            margin-bottom: 4px;
-        }
-
-        .uni-stat-value {
-            font-size: 26px;
-            font-weight: 700;
-            color: var(--ink);
-            line-height: 1;
-        }
-
-        .uni-card {
-            background: var(--card);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            overflow: hidden;
-        }
-
-        .uni-card-header {
-            padding: 20px 22px;
-            border-bottom: 1px solid var(--border);
-        }
-
-        .uni-card-title {
-            font-weight: 700;
-            font-size: 18px;
-            color: var(--ink);
-            margin: 0;
-        }
-
-        .uni-card-sub {
-            font-size: 12.5px;
-            color: var(--muted);
-            margin-top: 2px;
-        }
-
-        .uni-search {
-            position: relative;
-        }
-
-        .uni-search i {
-            position: absolute;
-            left: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--muted);
-            font-size: 14px;
-        }
-
-        .uni-search input {
-            padding-left: 34px;
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            min-width: 260px;
-            font-size: 13.5px;
-        }
-
-        .uni-search input:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.15);
-        }
-
-        .uni-status-filter select {
-            border: 1px solid var(--border);
-            border-radius: 8px;
-            font-size: 13.5px;
-            padding: 6px 30px 6px 12px;
-        }
-
-        .uni-status-filter select:focus {
-            border-color: var(--accent);
-            box-shadow: 0 0 0 3px rgba(47, 111, 237, 0.15);
-            outline: none;
-        }
-
-        .uni-btn-add {
-            background: var(--accent);
-            border: 1px solid var(--accent);
-            color: #ffffff;
-            font-size: 13.5px;
-            font-weight: 600;
-            padding: 9px 18px;
-            border-radius: 8px;
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            text-decoration: none;
-            transition: background .15s ease;
-        }
-
-        .uni-btn-add:hover {
-            background: var(--accent-hover);
-            color: #ffffff;
-        }
-
-        .uni-table thead th {
-            background: var(--th-bg);
-            color: var(--muted);
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: .06em;
-            text-transform: uppercase;
-            border-bottom: 1px solid var(--border);
-            padding: 13px 16px;
-            white-space: nowrap;
-        }
-
-        .uni-table tbody td {
-            padding: 14px 16px;
-            border-bottom: 1px solid var(--border) !important;
-            border-top: none !important;
-            font-size: 13.5px;
-            color: var(--ink-2);
-            vertical-align: middle;
-            background: var(--card) !important;
-        }
-
-        .uni-table tbody tr {
-            border-left: 3px solid transparent;
-            transition: background .15s ease, border-color .15s ease;
-        }
-
-        .uni-table tbody tr:hover td {
-            background: var(--tr-hover) !important;
-        }
-
-        .uni-table tbody tr:hover {
-            border-left-color: var(--accent);
-        }
-
-        .uni-avatar {
-            width: 42px;
-            height: 42px;
-            border-radius: 50%;
-            object-fit: cover;
-            border: 1px solid var(--border);
-            padding: 2px;
-            background: #fff;
-        }
-
-        .uni-name {
-            font-weight: 600;
-            font-size: 14px;
-            color: var(--ink);
-        }
-
-        .uni-enrollment {
-            display: inline-block;
-            font-size: 11px;
-            font-weight: 600;
-            letter-spacing: .04em;
-            color: var(--ink);
-            background: var(--badge-bg);
-            border-radius: 5px;
-            padding: 2px 7px;
-            margin-top: 2px;
-        }
-
-        .uni-email,
-        .uni-phone,
-        .uni-semester {
-            color: var(--muted);
-            font-size: 13px;
-        }
-
-        .uni-pill {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 5px 12px 5px 9px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-            white-space: nowrap;
-        }
-
-        .uni-pill .dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-        }
-
-        .uni-pill--active {
-            background: var(--success-bg);
-            color: var(--success);
-        }
-
-        .uni-pill--active .dot {
-            background: var(--success);
-        }
-
-        .uni-pill--inactive {
-            background: var(--danger-bg);
-            color: var(--danger);
-        }
-
-        .uni-pill--inactive .dot {
-            background: var(--danger);
-        }
-
-        .uni-pill--pending {
-            background: var(--warning-bg);
-            color: var(--warning);
-        }
-
-        .uni-pill--pending .dot {
-            background: var(--warning);
-        }
-
-        .uni-page .form-switch .form-check-input {
-            width: 40px;
-            height: 21px;
-            cursor: pointer;
-            background-color: var(--border);
-            border-color: var(--border);
-        }
-
-        .uni-page .form-switch .form-check-input:checked {
-            background-color: var(--success);
-            border-color: var(--success);
-        }
-
-        .uni-page .form-switch .form-check-input:focus {
-            box-shadow: 0 0 0 3px rgba(26, 162, 96, 0.15);
-        }
-
-        .uni-action-btn {
-            width: 32px;
-            height: 32px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 7px;
-            border: 1px solid var(--border);
-            background: var(--btn-action-bg);
-            color: var(--muted);
-            transition: all .15s ease;
-        }
-
-        .uni-action-btn:hover.uni-action-edit {
-            border-color: var(--warning);
-            color: var(--warning);
-            background: var(--warning-bg);
-        }
-
-        .uni-action-btn:hover.uni-action-delete {
-            border-color: var(--danger);
-            color: var(--danger);
-            background: var(--danger-bg);
-        }
-
-        .async-feedback {
-            min-height: 18px;
-            font-size: 12px;
-        }
-
-        .async-spinner {
-            position: absolute;
-            right: 10px;
-            top: calc(50% - 8px);
-        }
-
-        @media (max-width: 767px) {
-            .uni-card-header {
-                flex-direction: column;
-                align-items: flex-start !important;
-            }
-
-            .uni-search input {
-                min-width: 100%;
-            }
-
-            .uni-table {
-                min-width: 900px;
-            }
+        body { background-color: #f5f7fb; }
+        .page-title { font-weight: 600; color: #1f2937; }
+        .page-subtitle { color: #6b7280; font-size: 14px; }
+        .custom-breadcrumb { display: flex; align-items: center; gap: 12px; list-style: none; padding: 0; margin: 0; font-size: 14px; }
+        .custom-breadcrumb li { color: #6b7280; }
+        .custom-breadcrumb li a { text-decoration: none; color: #4f46e5; }
+        .custom-breadcrumb li:not(:last-child)::after { content: "/"; margin-left: 12px; color: #adb5bd; }
+        .stat-card { border: 0; border-radius: 14px; transition: 0.3s ease; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important; }
+        .stat-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 22px; }
+        .icon-primary { background: #e8edff; color: #4f46e5; }
+        .icon-success { background: #e7f8ef; color: #198754; }
+        .icon-danger { background: #fdecec; color: #dc3545; }
+        .main-card { border: 0; border-radius: 16px; overflow: hidden; }
+        .main-card-header { background: #ffffff; padding: 20px 24px; border-bottom: 1px solid #edf0f5; }
+        .search-box { position: relative; }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+        .search-box input { padding-left: 40px; border-radius: 10px; }
+        .table thead th { background: #f8f9fc; color: #6b7280; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 15px; }
+        .table tbody td { padding: 15px; vertical-align: middle; color: #374151; }
+        .table tbody tr { transition: 0.2s ease; }
+        .table tbody tr:hover { background-color: #f8faff; }
+        .student-logo { width: 46px; height: 46px; object-fit: cover; border-radius: 12px; border: 1px solid #e5e7eb; background: #f8f9fa; }
+        .student-name { font-weight: 600; color: #1f2937; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .async-feedback { min-height: 18px; font-size: 12px; }
+        .async-spinner { position: absolute; right: 10px; top: calc(50% - 8px); }
+        @media (max-width: 768px) {
+            .main-card-header { padding: 16px; }
+            .table { min-width: 1100px; }
         }
     </style>
+
 </head>
 
 <body>
 
-    <div class="loader-bg fixed inset-0 bg-white z-[1034]">
+    <div class="loader-bg fixed inset-0 bg-white dark:bg-themedark-cardbg z-[1034]">
         <div class="loader-track h-[5px] w-full inline-block absolute overflow-hidden top-0">
             <div class="loader-fill w-[300px] h-[5px] bg-primary-500 absolute top-0 left-0"></div>
         </div>
@@ -888,7 +507,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
     <?php include_once("Header.php"); ?>
 
     <div class="pc-container">
-        <div class="pc-content uni-page">
+        <div class="pc-content">
 
             <?php if ($flash): ?>
                 <div class="alert alert-<?= htmlspecialchars($flash['type']) ?> alert-dismissible fade show" role="alert">
@@ -897,66 +516,84 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 </div>
             <?php endif; ?>
 
-            <div class="page-header uni-header d-flex justify-content-between align-items-start flex-wrap gap-3">
-                <div class="page-block">
-                    <h1 class="uni-title">All Students</h1>
-                    <div class="uni-card-sub-top">Manage students registered on the Evenza platform</div>
-                    <ul class="uni-breadcrumb">
-                        <li><a href="Index.php">Home</a></li>
-                        <li><a href="javascript: void(0)">Student Management</a></li>
-                        <li style="color: var(--ink);">All Students</li>
+            <!-- Page Header -->
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
+                <div>
+                    <h4 class="page-title mb-1">All Students</h4>
+                    <p class="page-subtitle mb-3">Manage students registered on the Evenza platform</p>
+                    <ul class="custom-breadcrumb">
+                        <li><a href="Dashboard.php">Home</a></li>
+                        <li>Student Management</li>
+                        <li>All Students</li>
                     </ul>
                 </div>
-                <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#addStudentModal">
-                    <i class="ti ti-plus me-2"></i> Add Student
-                </button>
-            </div>
 
-            <div class="row g-3 mb-4 mt-1">
-                <div class="col-md-4">
-                    <div class="uni-stat uni-stat--total">
-                        <div class="uni-stat-icon"><i class="bi bi-people-fill"></i></div>
-                        <div>
-                            <div class="uni-stat-label">Total Students</div>
-                            <div class="uni-stat-value" id="totalCount"><?= $total ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="uni-stat uni-stat--active">
-                        <div class="uni-stat-icon"><i class="bi bi-check-circle-fill"></i></div>
-                        <div>
-                            <div class="uni-stat-label">Active Students</div>
-                            <div class="uni-stat-value" id="activeCount"><?= $active ?></div>
-                        </div>
-                    </div>
-                </div>
-                <div class="col-md-4">
-                    <div class="uni-stat uni-stat--inactive">
-                        <div class="uni-stat-icon"><i class="bi bi-x-circle-fill"></i></div>
-                        <div>
-                            <div class="uni-stat-label">Inactive Students</div>
-                            <div class="uni-stat-value" id="inactiveCount"><?= $inactive ?></div>
-                        </div>
-                    </div>
+                <div class="mt-3 mt-md-0">
+                    <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#addStudentModal">
+                        <i class="bi bi-plus-lg me-2"></i>
+                        Add Student
+                    </button>
                 </div>
             </div>
 
-            <div class="row">
-                <div class="col-12">
-                    <div class="uni-card">
-                        <div class="uni-card-header d-flex justify-content-between align-items-center flex-wrap gap-3">
+            <!-- Statistics -->
+            <div class="row g-4 mb-4">
+                <div class="col-md-4">
+                    <div class="card stat-card shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon icon-primary me-3"><i class="bi bi-people-fill"></i></div>
                             <div>
-                                <h5 class="uni-card-title">Student List</h5>
-                                <div class="uni-card-sub">Search and manage student profiles and active status.</div>
+                                <small class="text-muted">Total Students</small>
+                                <h4 class="mb-0 mt-1" id="totalCount"><?= $total ?></h4>
                             </div>
-                            <div class="d-flex align-items-center gap-2 flex-wrap">
-                                <div class="uni-search">
-                                    <i class="bi bi-search"></i>
-                                    <input type="text" id="studentSearch" class="form-control form-control-sm" placeholder="Search by name, email, enrollment...">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card stat-card shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon icon-success me-3"><i class="bi bi-check-circle"></i></div>
+                            <div>
+                                <small class="text-muted">Active Students</small>
+                                <h4 class="mb-0 mt-1" id="activeCount"><?= $active ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-4">
+                    <div class="card stat-card shadow-sm h-100">
+                        <div class="card-body d-flex align-items-center">
+                            <div class="stat-icon icon-danger me-3"><i class="bi bi-x-circle"></i></div>
+                            <div>
+                                <small class="text-muted">Inactive Students</small>
+                                <h4 class="mb-0 mt-1" id="inactiveCount"><?= $inactive ?></h4>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Student Table -->
+            <div class="card main-card shadow-sm">
+
+                <div class="main-card-header">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-5">
+                            <h5 class="mb-1">Student List</h5>
+                            <small class="text-muted">View and manage all students</small>
+                        </div>
+                        <div class="col-md-7">
+                            <div class="row g-2 justify-content-md-end">
+                                <div class="col-md-7">
+                                    <div class="search-box">
+                                        <i class="bi bi-search"></i>
+                                        <input type="text" class="form-control" id="searchStudent" placeholder="Search student...">
+                                    </div>
                                 </div>
-                                <div class="uni-status-filter">
-                                    <select id="statusFilter" class="form-select form-select-sm">
+                                <div class="col-md-5">
+                                    <select class="form-select" id="statusFilter">
                                         <option value="">All Status</option>
                                         <option value="active">Active</option>
                                         <option value="inactive">Inactive</option>
@@ -964,91 +601,112 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 </div>
                             </div>
                         </div>
-
-                        <div class="card-body p-0">
-                            <div class="table-responsive">
-                                <table class="table uni-table align-middle mb-0" id="studentTable">
-                                    <thead>
-                                        <tr>
-                                            <th>#</th>
-                                            <th>Student</th>
-                                            <th>College</th>
-                                            <th>Email</th>
-                                            <th>Phone</th>
-                                            <th>Semester</th>
-                                            <th>Verification</th>
-                                            <th>Status</th>
-                                            <th class="text-end">Actions</th>
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        <?php if ($total === 0): ?>
-                                            <tr>
-                                                <td colspan="9" class="text-center text-muted py-4">
-                                                    No students yet. Click "Add Student" to create one.
-                                                </td>
-                                            </tr>
-                                        <?php else: ?>
-                                            <?php foreach ($students as $i => $s): ?>
-                                                <?php
-                                                $isActive = $s['account_status'] === 'active';
-                                                $verify   = $s['verification_status'];
-                                                $verifyPillClass = $verify === 'verified' ? 'uni-pill--active' : ($verify === 'rejected' ? 'uni-pill--inactive' : 'uni-pill--pending');
-                                                $photoSrc = !empty($s['profile_photo']) ? $PHOTO_WEB_PATH . htmlspecialchars($s['profile_photo']) : $PHOTO_WEB_PATH . 'placeholder.png';
-                                                ?>
-                                                <tr data-id="<?= (int) $s['student_id'] ?>">
-                                                    <td><?= $i + 1 ?></td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center gap-3">
-                                                            <img src="<?= $photoSrc ?>" class="uni-avatar" alt="Avatar">
-                                                            <div>
-                                                                <div class="uni-name"><?= htmlspecialchars($s['name']) ?></div>
-                                                                <?php if (!empty($s['enrollment_no'])): ?>
-                                                                    <span class="uni-enrollment"><?= htmlspecialchars($s['enrollment_no']) ?></span>
-                                                                <?php endif; ?>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td><?= htmlspecialchars($s['college_name'] ?? 'Unknown') ?></td>
-                                                    <td class="uni-email"><?= htmlspecialchars($s['email']) ?></td>
-                                                    <td class="uni-phone"><?= htmlspecialchars($s['phone'] ?? '—') ?></td>
-                                                    <td class="uni-semester"><?= htmlspecialchars($s['semester'] ?? '—') ?></td>
-                                                    <td>
-                                                        <span class="uni-pill <?= $verifyPillClass ?> verification-badge">
-                                                            <span class="dot"></span><?= ucfirst($verify) ?>
-                                                        </span>
-                                                    </td>
-                                                    <td>
-                                                        <div class="d-flex align-items-center gap-2">
-                                                            <span class="uni-pill <?= $isActive ? 'uni-pill--active' : 'uni-pill--inactive' ?> status-badge">
-                                                                <span class="dot"></span><?= $isActive ? 'Active' : 'Inactive' ?>
-                                                            </span>
-                                                            <div class="form-check form-switch mb-0">
-                                                                <input class="form-check-input status-toggle" type="checkbox" role="switch" data-id="<?= (int) $s['student_id'] ?>" <?= $isActive ? 'checked' : '' ?>>
-                                                            </div>
-                                                        </div>
-                                                    </td>
-                                                    <td class="text-end">
-                                                        <button type="button" class="uni-action-btn uni-action-edit me-1" title="Edit" data-bs-toggle="modal" data-bs-target="#editStudentModal<?= (int) $s['student_id'] ?>">
-                                                            <i class="bi bi-pencil"></i>
-                                                        </button>
-                                                        <button type="button" class="uni-action-btn uni-action-delete" title="Delete" onclick="deleteStudent(<?= (int) $s['student_id'] ?>)">
-                                                            <i class="bi bi-trash"></i>
-                                                        </button>
-                                                    </td>
-                                                </tr>
-                                            <?php endforeach; ?>
-                                        <?php endif; ?>
-                                    </tbody>
-                                </table>
-                            </div>
-                            <div class="d-flex justify-content-between align-items-center px-3 py-3 border-top">
-                                <small class="text-muted">Showing <?= $total ?> of <?= $total ?> students</small>
-                            </div>
-                        </div>
                     </div>
                 </div>
+
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle mb-0" id="studentTable">
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>Student</th>
+                                    <th>College</th>
+                                    <th>Email</th>
+                                    <th>Phone</th>
+                                    <th>Semester</th>
+                                    <th>Verification</th>
+                                    <th>Status</th>
+                                    <th>Status Toggle</th>
+                                    <th>Created</th>
+                                    <th class="text-end">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+
+                                <?php if ($total === 0): ?>
+                                    <tr>
+                                        <td colspan="11" class="text-center text-muted py-4">
+                                            No students yet. Click "Add Student" to create one.
+                                        </td>
+                                    </tr>
+                                <?php else: ?>
+                                    <?php foreach ($students as $i => $s): ?>
+                                        <?php
+                                            $isActive = $s['account_status'] === 'active';
+                                            $verify   = $s['verification_status'];
+                                            $verifyClass = $verify === 'verified'
+                                                ? 'bg-success-subtle text-success'
+                                                : ($verify === 'rejected' ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning');
+                                            $photoSrc = !empty($s['profile_photo'])
+                                                ? $PHOTO_WEB_PATH . htmlspecialchars($s['profile_photo'])
+                                                : $PHOTO_WEB_PATH . 'placeholder.png';
+                                        ?>
+                                        <tr>
+                                            <td><?= $i + 1 ?></td>
+
+                                            <td>
+                                                <div class="d-flex align-items-center gap-3">
+                                                    <img src="<?= $photoSrc ?>" class="student-logo" alt="Student Photo">
+                                                    <div>
+                                                        <div class="student-name"><?= htmlspecialchars($s['name']) ?></div>
+                                                        <?php if (!empty($s['enrollment_no'])): ?>
+                                                            <small class="text-muted"><?= htmlspecialchars($s['enrollment_no']) ?></small>
+                                                        <?php endif; ?>
+                                                    </div>
+                                                </div>
+                                            </td>
+
+                                            <td><?= htmlspecialchars($s['college_name'] ?? 'Unknown') ?></td>
+                                            <td><?= htmlspecialchars($s['email']) ?></td>
+                                            <td><?= htmlspecialchars($s['phone'] ?? '—') ?></td>
+                                            <td><?= htmlspecialchars($s['semester'] ?? '—') ?></td>
+
+                                            <td>
+                                                <span class="badge <?= $verifyClass ?> status-badge verification-badge">
+                                                    <?= ucfirst($verify) ?>
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <span class="badge <?= $isActive ? 'bg-success-subtle text-success' : 'bg-danger-subtle text-danger' ?> status-badge">
+                                                    <?= $isActive ? 'Active' : 'Inactive' ?>
+                                                </span>
+                                            </td>
+
+                                            <td>
+                                                <div class="form-check form-switch mb-0">
+                                                    <input class="form-check-input status-toggle" type="checkbox" role="switch"
+                                                        data-id="<?= (int) $s['student_id'] ?>" <?= $isActive ? 'checked' : '' ?>>
+                                                </div>
+                                            </td>
+
+                                            <td><?= date('d M Y', strtotime($s['created_at'])) ?></td>
+
+                                            <td class="text-end">
+                                                <button type="button" class="btn btn-light action-btn me-1" title="Edit"
+                                                    data-bs-toggle="modal" data-bs-target="#editStudentModal<?= (int) $s['student_id'] ?>">
+                                                    <i class="bi bi-pencil text-primary"></i>
+                                                </button>
+                                                <button class="btn btn-light action-btn" title="Delete" onclick="deleteStudent(<?= (int) $s['student_id'] ?>)">
+                                                    <i class="bi bi-trash text-danger"></i>
+                                                </button>
+                                            </td>
+                                        </tr>
+                                    <?php endforeach; ?>
+                                <?php endif; ?>
+
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center">
+                    <small class="text-muted">Showing <?= $total ?> of <?= $total ?> students</small>
+                </div>
+
             </div>
+
         </div>
     </div>
 
@@ -1058,17 +716,21 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             <div class="modal-content">
                 <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                     <input type="hidden" name="form_action" value="create">
+
                     <div class="modal-header">
                         <h5 class="modal-title">Add Student</h5>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
+
                     <div class="modal-body">
                         <div class="row g-3">
+
                             <div class="col-md-6">
                                 <label class="form-label">Student Name</label>
                                 <input type="text" class="form-control" name="name" required minlength="2" maxlength="100">
                                 <div class="invalid-feedback">Student name is required.</div>
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">College</label>
                                 <select class="form-select" name="college_id" required>
@@ -1079,6 +741,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 </select>
                                 <div class="invalid-feedback">Select a college.</div>
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Enrollment No</label>
                                 <div class="position-relative">
@@ -1088,6 +751,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 <div class="invalid-feedback">Enrollment number is required.</div>
                                 <div class="async-feedback mt-1" id="enrollAsyncFeedbackAdd" role="alert" aria-live="polite"></div>
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Email</label>
                                 <div class="position-relative">
@@ -1097,16 +761,19 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 <div class="invalid-feedback">Enter a valid email.</div>
                                 <div class="async-feedback mt-1" id="emailAsyncFeedbackAdd" role="alert" aria-live="polite"></div>
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Login Password</label>
                                 <input type="password" class="form-control" name="password" required minlength="8">
                                 <div class="invalid-feedback">Minimum 8 characters.</div>
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Phone</label>
                                 <input type="text" class="form-control" name="phone" required pattern="[0-9+\-\s]{7,20}">
-                                <div class="invalid-feedback">Phone number is required (valid format).</div>
+                                <div class="invalid-feedback">Enter a valid phone number.</div>
                             </div>
+
                             <div class="col-md-4">
                                 <label class="form-label">Gender</label>
                                 <select class="form-select" name="gender" required>
@@ -1117,11 +784,13 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 </select>
                                 <div class="invalid-feedback">Select a gender.</div>
                             </div>
+
                             <div class="col-md-4">
                                 <label class="form-label">Semester</label>
                                 <input type="text" class="form-control" name="semester" required maxlength="20" placeholder="e.g. 4">
                                 <div class="invalid-feedback">Semester is required.</div>
                             </div>
+
                             <div class="col-md-4">
                                 <label class="form-label">Account Status</label>
                                 <select class="form-select" name="account_status" required>
@@ -1129,6 +798,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     <option value="inactive">Inactive</option>
                                 </select>
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Verification Status</label>
                                 <select class="form-select" name="verification_status" required>
@@ -1137,28 +807,33 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     <option value="rejected">Rejected</option>
                                 </select>
                             </div>
+
                             <div class="col-md-6">
                                 <label class="form-label">Profile Photo (JPG/PNG, max 2MB)</label>
                                 <input type="file" class="form-control" name="profile_photo" accept="image/png,image/jpeg" required>
                                 <div class="invalid-feedback">Profile photo is required.</div>
                             </div>
+
                             <div class="col-12">
                                 <label class="form-label">Student ID Card Image (JPG/PNG, max 2MB)</label>
                                 <input type="file" class="form-control" name="id_card_image" accept="image/png,image/jpeg" required>
                                 <div class="invalid-feedback">Student ID card image is required.</div>
                             </div>
+
                         </div>
                     </div>
+
                     <div class="modal-footer">
                         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                         <button type="submit" class="btn btn-primary">Save Student</button>
                     </div>
+
                 </form>
             </div>
         </div>
     </div>
 
-    <!-- ===================== EDIT STUDENT MODALS ===================== -->
+    <!-- ===================== EDIT STUDENT MODALS (one per row) ===================== -->
     <?php foreach ($students as $s): ?>
         <div class="modal fade" id="editStudentModal<?= (int) $s['student_id'] ?>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1166,17 +841,21 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     <form method="POST" enctype="multipart/form-data" class="needs-validation" novalidate>
                         <input type="hidden" name="form_action" value="update">
                         <input type="hidden" name="id" value="<?= (int) $s['student_id'] ?>">
+
                         <div class="modal-header">
                             <h5 class="modal-title">Edit Student</h5>
                             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                         </div>
+
                         <div class="modal-body">
                             <div class="row g-3">
+
                                 <div class="col-md-6">
                                     <label class="form-label">Student Name</label>
                                     <input type="text" class="form-control" name="name" required minlength="2" maxlength="100" value="<?= htmlspecialchars($s['name']) ?>">
                                     <div class="invalid-feedback">Student name is required.</div>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">College</label>
                                     <select class="form-select" name="college_id" required>
@@ -1186,7 +865,9 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                             </option>
                                         <?php endforeach; ?>
                                     </select>
+                                    <div class="invalid-feedback">Select a college.</div>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">Enrollment No</label>
                                     <div class="position-relative">
@@ -1196,6 +877,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     <div class="invalid-feedback">Enrollment number is required.</div>
                                     <div class="async-feedback mt-1" id="enrollAsyncFeedback<?= (int) $s['student_id'] ?>" role="alert" aria-live="polite"></div>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">Email</label>
                                     <div class="position-relative">
@@ -1205,16 +887,19 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     <div class="invalid-feedback">Enter a valid email.</div>
                                     <div class="async-feedback mt-1" id="emailAsyncFeedback<?= (int) $s['student_id'] ?>" role="alert" aria-live="polite"></div>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">Reset Password <span class="text-muted">(optional)</span></label>
                                     <input type="password" class="form-control" name="password" minlength="8" placeholder="Leave blank to keep current password">
                                     <div class="invalid-feedback">Minimum 8 characters.</div>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">Phone</label>
                                     <input type="text" class="form-control" name="phone" required pattern="[0-9+\-\s]{7,20}" value="<?= htmlspecialchars($s['phone'] ?? '') ?>">
-                                    <div class="invalid-feedback">Phone number is required (valid format).</div>
+                                    <div class="invalid-feedback">Enter a valid phone number.</div>
                                 </div>
+
                                 <div class="col-md-4">
                                     <label class="form-label">Gender</label>
                                     <select class="form-select" name="gender" required>
@@ -1225,11 +910,13 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     </select>
                                     <div class="invalid-feedback">Select a gender.</div>
                                 </div>
+
                                 <div class="col-md-4">
                                     <label class="form-label">Semester</label>
                                     <input type="text" class="form-control" name="semester" required maxlength="20" value="<?= htmlspecialchars($s['semester'] ?? '') ?>">
                                     <div class="invalid-feedback">Semester is required.</div>
                                 </div>
+
                                 <div class="col-md-4">
                                     <label class="form-label">Account Status</label>
                                     <select class="form-select" name="account_status" required>
@@ -1237,6 +924,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                         <option value="inactive" <?= $s['account_status'] === 'inactive' ? 'selected' : '' ?>>Inactive</option>
                                     </select>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label">Verification Status</label>
                                     <select class="form-select" name="verification_status" required>
@@ -1245,22 +933,31 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                         <option value="rejected" <?= $s['verification_status'] === 'rejected' ? 'selected' : '' ?>>Rejected</option>
                                     </select>
                                 </div>
+
                                 <div class="col-md-6">
                                     <label class="form-label"><?= empty($s['profile_photo']) ? 'Profile Photo' : 'Replace Profile Photo (optional)' ?></label>
                                     <input type="file" class="form-control" name="profile_photo" accept="image/png,image/jpeg">
-                                    <?php if (!empty($s['profile_photo'])): ?><small class="text-muted">Current: <?= htmlspecialchars($s['profile_photo']) ?></small><?php endif; ?>
+                                    <?php if (!empty($s['profile_photo'])): ?>
+                                        <small class="text-muted">Current: <?= htmlspecialchars($s['profile_photo']) ?></small>
+                                    <?php endif; ?>
                                 </div>
+
                                 <div class="col-12">
                                     <label class="form-label"><?= empty($s['id_card_image']) ? 'Student ID Card Image' : 'Replace ID Card Image (optional)' ?></label>
                                     <input type="file" class="form-control" name="id_card_image" accept="image/png,image/jpeg">
-                                    <?php if (!empty($s['id_card_image'])): ?><small class="text-muted">Current: <?= htmlspecialchars($s['id_card_image']) ?></small><?php endif; ?>
+                                    <?php if (!empty($s['id_card_image'])): ?>
+                                        <small class="text-muted">Current: <?= htmlspecialchars($s['id_card_image']) ?></small>
+                                    <?php endif; ?>
                                 </div>
+
                             </div>
                         </div>
+
                         <div class="modal-footer">
                             <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
                             <button type="submit" class="btn btn-primary">Update Student</button>
                         </div>
+
                     </form>
                 </div>
             </div>
@@ -1279,16 +976,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        layout_change('false');
-        layout_theme_sidebar_change('dark');
-        change_box_container('false');
-        layout_caption_change('true');
-        layout_rtl_change('false');
-        preset_change('preset-1');
-        main_layout_change('vertical');
-    </script>
-
-    <script>
+        // Bootstrap client-side validation styling for both modal forms
         document.querySelectorAll(".needs-validation").forEach(form => {
             form.addEventListener("submit", function(e) {
                 if (!form.checkValidity()) {
@@ -1306,7 +994,8 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             });
         <?php endif; ?>
 
-        const searchInput = document.getElementById("studentSearch");
+        // Search & Filter
+        const searchInput = document.getElementById("searchStudent");
         const statusFilter = document.getElementById("statusFilter");
         const rows = document.querySelectorAll("#studentTable tbody tr");
 
@@ -1315,32 +1004,43 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             const statusValue = statusFilter.value.toLowerCase();
 
             rows.forEach(row => {
-                if (!row.querySelector(".status-badge")) return;
+                const badge = row.querySelector(".status-badge:not(.verification-badge)");
+                if (!badge) return;
+
                 const rowText = row.innerText.toLowerCase();
-                const statusBadge = row.querySelector(".status-badge");
-                const status = statusBadge ? statusBadge.innerText.toLowerCase().trim() : '';
+                const status = badge.innerText.toLowerCase().trim();
 
                 const matchesSearch = rowText.includes(searchValue);
                 const matchesStatus = statusValue === "" || status === statusValue;
+
                 row.style.display = matchesSearch && matchesStatus ? "" : "none";
             });
         }
+
         searchInput.addEventListener("keyup", filterStudents);
         statusFilter.addEventListener("change", filterStudents);
 
+        // Status Toggle (AJAX)
         const activeCountBox = document.getElementById("activeCount");
         const inactiveCountBox = document.getElementById("inactiveCount");
 
         function setBadge(row, isActive) {
-            const badge = row.querySelector(".status-badge");
-            badge.innerHTML = '<span class="dot"></span>' + (isActive ? 'Active' : 'Inactive');
-            badge.classList.remove(isActive ? 'uni-pill--inactive' : 'uni-pill--active');
-            badge.classList.add(isActive ? 'uni-pill--active' : 'uni-pill--inactive');
+            const badge = row.querySelector(".status-badge:not(.verification-badge)");
+            if (isActive) {
+                badge.textContent = "Active";
+                badge.classList.remove("bg-danger-subtle", "text-danger");
+                badge.classList.add("bg-success-subtle", "text-success");
+            } else {
+                badge.textContent = "Inactive";
+                badge.classList.remove("bg-success-subtle", "text-success");
+                badge.classList.add("bg-danger-subtle", "text-danger");
+            }
         }
 
         function adjustCounts(isActive) {
             let activeVal = parseInt(activeCountBox.textContent, 10) || 0;
             let inactiveVal = parseInt(inactiveCountBox.textContent, 10) || 0;
+
             if (isActive) {
                 activeCountBox.textContent = activeVal + 1;
                 if (inactiveVal > 0) inactiveCountBox.textContent = inactiveVal - 1;
@@ -1359,17 +1059,13 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 setBadge(row, isActive);
                 adjustCounts(isActive);
                 filterStudents();
+
                 this.disabled = true;
 
                 fetch("allstudents.php?action=toggle_status", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            id: studentId,
-                            status: isActive ? "active" : "inactive"
-                        })
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: studentId, status: isActive ? "active" : "inactive" })
                     })
                     .then(res => {
                         if (!res.ok) throw new Error("Request failed");
@@ -1397,6 +1093,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             }
         }
 
+        // Async uniqueness checks (enrollment_no / email)
         (function() {
             const DEBOUNCE_MS = 450;
             const timers = new WeakMap();
@@ -1450,14 +1147,8 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 try {
                     const res = await fetch("allstudents.php?action=check_unique", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            field,
-                            value,
-                            id: idField ? idField.value : null
-                        })
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ field, value, id: idField ? idField.value : null })
                     });
                     if (!res.ok) throw new Error("Request failed");
                     const data = await res.json();
@@ -1489,6 +1180,17 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             });
         })();
     </script>
+
+    <script>
+        layout_change('false');
+        layout_theme_sidebar_change('dark');
+        change_box_container('false');
+        layout_caption_change('true');
+        layout_rtl_change('false');
+        preset_change('preset-1');
+        main_layout_change('vertical');
+    </script>
+
 </body>
 
 </html>
