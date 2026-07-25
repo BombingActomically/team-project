@@ -135,6 +135,13 @@ function validate_event(PDO $pdo, array $data): array
             $errors[] = 'Enter a valid event date.';
         } else {
             $eventDateObj = $d;
+
+            // Event date must not be more than 1 year in the future.
+            $maxEventDateObj = new DateTime('today');
+            $maxEventDateObj->modify('+1 year');
+            if ($eventDateObj > $maxEventDateObj) {
+                $errors[] = 'Event date cannot be more than 1 year from today.';
+            }
         }
     }
 
@@ -164,10 +171,13 @@ function validate_event(PDO $pdo, array $data): array
         if (!$dl) {
             $errors[] = 'Enter a valid registration deadline.';
         } elseif ($eventDateObj !== null) {
-            $eventEndOfDay = clone $eventDateObj;
-            $eventEndOfDay->setTime(23, 59, 59);
-            if ($dl > $eventEndOfDay) {
-                $errors[] = 'Registration deadline must be on or before the event date.';
+            // Deadline must be at least 1 full day before the event date
+            // (i.e. on or before 23:59:59 of the day prior to the event).
+            $deadlineLimit = clone $eventDateObj;
+            $deadlineLimit->modify('-1 day');
+            $deadlineLimit->setTime(23, 59, 59);
+            if ($dl > $deadlineLimit) {
+                $errors[] = 'Registration deadline must be at least 1 day before the event date.';
             }
         }
     }
@@ -403,7 +413,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 }
 
 // Fetch lists for select dropdown boxes
-$colleges   = $pdo->query('SELECT college_id, name, status FROM colleges ORDER BY name ASC')->fetchAll();
+$colleges = $pdo->query("
+    SELECT college_id, name 
+    FROM colleges 
+    WHERE status = 'active'
+    ORDER BY name ASC
+")->fetchAll();
 $categories = $pdo->query('SELECT category_id, name FROM categories ORDER BY name ASC')->fetchAll();
 
 $collegeLookup  = array_column($colleges, 'name', 'college_id');
@@ -421,7 +436,8 @@ $flash = $_SESSION['flash'] ?? null;
 $reopenModal = $_SESSION['reopen_modal'] ?? null;
 unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
-$todayDate = date('Y-m-d');
+$todayDate    = date('Y-m-d');
+$maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go further than 1 year ahead
 ?>
 <!doctype html>
 <html lang="en">
@@ -838,7 +854,7 @@ $todayDate = date('Y-m-d');
                                             aria-describedby="collegeAsyncFeedback<?= (int)$e['event_id'] ?>">
                                             <?php foreach ($colleges as $c): ?>
                                                 <option value="<?= (int)$c['college_id'] ?>" <?= $c['college_id'] == $e['college_id'] ? 'selected' : '' ?>>
-                                                    <?= htmlspecialchars($c['name']) ?><?= $c['status'] === 'inactive' ? ' (Inactive)' : '' ?>
+                                                    <?= htmlspecialchars($c['name']) ?>
                                                 </option>
                                             <?php endforeach; ?>
                                         </select>
@@ -916,8 +932,8 @@ $todayDate = date('Y-m-d');
 
                                 <div class="col-md-4">
                                     <label class="form-label">Date *</label>
-                                    <input type="date" class="form-control event-date-input" name="event_date" value="<?= htmlspecialchars($e['event_date']) ?>" required>
-                                    <div class="invalid-feedback">Please select a valid date.</div>
+                                    <input type="date" class="form-control event-date-input" name="event_date" value="<?= htmlspecialchars($e['event_date']) ?>" required max="<?= htmlspecialchars($maxEventDate) ?>">
+                                    <div class="invalid-feedback">Please select a valid date (within the next 1 year).</div>
                                 </div>
 
                                 <div class="col-md-4">
@@ -935,7 +951,8 @@ $todayDate = date('Y-m-d');
                                 <div class="col-md-6">
                                     <label class="form-label">Registration Deadline *</label>
                                     <input type="datetime-local" class="form-control deadline-input" name="registration_deadline" value="<?= !empty($e['registration_deadline']) ? date('Y-m-d\TH:i', strtotime($e['registration_deadline'])) : '' ?>" required>
-                                    <div class="invalid-feedback">Deadline must be on or before the event date.</div>
+                                    <div class="invalid-feedback">Deadline must be at least 1 day before the event date.</div>
+                                    <small class="text-muted">Auto-set to 3 days before the event date. Can be moved up to 1 day before the event.</small>
                                 </div>
 
                                 <div class="col-md-6">
@@ -989,7 +1006,7 @@ $todayDate = date('Y-m-d');
                                         aria-describedby="collegeAsyncFeedbackAdd">
                                         <option value="">Choose College</option>
                                         <?php foreach ($colleges as $c): ?>
-                                            <option value="<?= (int)$c['college_id'] ?>"><?= htmlspecialchars($c['name']) ?><?= $c['status'] === 'inactive' ? ' (Inactive)' : '' ?></option>
+                                            <option value="<?= (int)$c['college_id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                     <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
@@ -1062,8 +1079,8 @@ $todayDate = date('Y-m-d');
 
                             <div class="col-md-4">
                                 <label class="form-label">Date *</label>
-                                <input type="date" class="form-control event-date-input" name="event_date" required min="<?= htmlspecialchars($todayDate) ?>">
-                                <div class="invalid-feedback">Please select a valid date.</div>
+                                <input type="date" class="form-control event-date-input" name="event_date" required min="<?= htmlspecialchars($todayDate) ?>" max="<?= htmlspecialchars($maxEventDate) ?>">
+                                <div class="invalid-feedback">Please select a valid date (within the next 1 year).</div>
                             </div>
 
                             <div class="col-md-4">
@@ -1081,7 +1098,8 @@ $todayDate = date('Y-m-d');
                             <div class="col-md-6">
                                 <label class="form-label">Registration Deadline *</label>
                                 <input type="datetime-local" class="form-control deadline-input" name="registration_deadline" required>
-                                <div class="invalid-feedback">Deadline must be on or before the event date.</div>
+                                <div class="invalid-feedback">Deadline must be at least 1 day before the event date.</div>
+                                <small class="text-muted">Auto-set to 3 days before the event date. Can be moved up to 1 day before the event.</small>
                             </div>
 
                             <div class="col-md-6">
@@ -1222,6 +1240,43 @@ $todayDate = date('Y-m-d');
         });
 
         // ===================== Cross-field validation =====================
+        function pad2(n) {
+            return String(n).padStart(2, '0');
+        }
+
+        function toDatetimeLocalValue(d) {
+            return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+        }
+
+        // Registration deadline: auto-set to 3 days before the event date,
+        // and cannot be moved later than 1 day before the event date.
+        function syncDeadlineWithEventDate(dateInput, deadlineInput) {
+            if (!dateInput || !deadlineInput || !dateInput.value) return;
+
+            const eventDate = new Date(dateInput.value + 'T00:00:00');
+            if (isNaN(eventDate.getTime())) return;
+
+            // Max allowed deadline = 1 day before event date, at 23:59
+            const maxDeadline = new Date(eventDate);
+            maxDeadline.setDate(maxDeadline.getDate() - 1);
+            maxDeadline.setHours(23, 59, 0, 0);
+            deadlineInput.max = toDatetimeLocalValue(maxDeadline);
+
+            // Default/auto deadline = 3 days before event date, at 23:59
+            const defaultDeadline = new Date(eventDate);
+            defaultDeadline.setDate(defaultDeadline.getDate() - 3);
+            defaultDeadline.setHours(23, 59, 0, 0);
+            const defaultValue = toDatetimeLocalValue(defaultDeadline);
+
+            // Auto-fill when empty, or clamp down when the current value
+            // no longer fits within the allowed window for the new event date.
+            if (!deadlineInput.value || deadlineInput.value > deadlineInput.max) {
+                deadlineInput.value = defaultValue;
+            }
+
+            validateField(deadlineInput);
+        }
+
         document.querySelectorAll('.event-form').forEach(form => {
             const minInput   = form.querySelector('input[name="min_team_size"]');
             const maxInput   = form.querySelector('input[name="max_team_size"]');
@@ -1254,13 +1309,8 @@ $todayDate = date('Y-m-d');
 
             function checkDeadline() {
                 if (!deadlineInput || !dateInput) return;
-                if (deadlineInput.value && dateInput.value) {
-                    const deadlineDate = deadlineInput.value.split('T')[0];
-                    if (deadlineDate > dateInput.value) {
-                        deadlineInput.setCustomValidity('Registration deadline must be on or before the event date.');
-                    } else {
-                        deadlineInput.setCustomValidity('');
-                    }
+                if (deadlineInput.value && deadlineInput.max && deadlineInput.value > deadlineInput.max) {
+                    deadlineInput.setCustomValidity('Registration deadline must be at least 1 day before the event date.');
                 } else {
                     deadlineInput.setCustomValidity('');
                 }
@@ -1268,9 +1318,23 @@ $todayDate = date('Y-m-d');
                 validateField(dateInput);
             }
 
+            // Initialize deadline constraints on load (covers Edit modal pre-filled dates).
+            syncDeadlineWithEventDate(dateInput, deadlineInput);
+
+            if (dateInput) {
+                dateInput.addEventListener('input', function() {
+                    syncDeadlineWithEventDate(dateInput, deadlineInput);
+                    checkDeadline();
+                });
+                dateInput.addEventListener('change', function() {
+                    syncDeadlineWithEventDate(dateInput, deadlineInput);
+                    checkDeadline();
+                });
+            }
+
             [minInput, maxInput].forEach(el => el && el.addEventListener('input', checkTeamSizes));
             [startInput, endInput].forEach(el => el && el.addEventListener('input', checkTimes));
-            [deadlineInput, dateInput].forEach(el => el && el.addEventListener('input', checkDeadline));
+            if (deadlineInput) deadlineInput.addEventListener('input', checkDeadline);
         });
 
         <?php if ($reopenModal): ?>
