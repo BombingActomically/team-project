@@ -3,13 +3,6 @@
  * all_events.php
  * Single-file Event management: DB connection, validation,
  * create / read / update / delete, status toggle (AJAX), and UI theme matching alluniversity.php.
- *
- * Events are linked to a College (events.college_id -> colleges.college_id),
- * the same way a College is linked to a University (colleges.university_id ->
- * universities.university_id) in colleges.php. The college_id (and, when
- * supplied, category_id) is now verified to actually exist before an event
- * is saved, and every other field gets full server-side validation in
- * addition to the existing client-side (HTML5) checks.
  */
 
 include 'auth_check.php';
@@ -45,13 +38,6 @@ try {
 /* =========================================================
    VALIDATION HELPERS
    ========================================================= */
-
-/**
- * Full server-side validation for an event payload.
- * Mirrors the depth of validate_college()/validate_university() in the
- * sibling files: required fields, format checks, cross-field rules, and
- * a foreign-key existence check for college_id (and category_id, when given).
- */
 function validate_event(PDO $pdo, array $data): array
 {
     $errors = [];
@@ -72,12 +58,11 @@ function validate_event(PDO $pdo, array $data): array
     $registration_deadline  = trim($data['registration_deadline'] ?? '');
     $event_date             = trim($data['event_date'] ?? '');
     $start_time             = trim($data['start_time'] ?? '');
-    $end_time                = trim($data['end_time'] ?? '');
-    $venue                   = trim($data['venue'] ?? '');
-    $dress_code              = trim($data['dress_code'] ?? '');
-    $status                  = trim($data['status'] ?? 'draft');
+    $end_time               = trim($data['end_time'] ?? '');
+    $venue                  = trim($data['venue'] ?? '');
+    $dress_code             = trim($data['dress_code'] ?? '');
+    $status                 = trim($data['status'] ?? 'draft');
 
-    /* ---------- College (required, FK must exist) ---------- */
     if (!$college_id) {
         $errors[] = 'Please select a college.';
     } else {
@@ -88,7 +73,6 @@ function validate_event(PDO $pdo, array $data): array
         }
     }
 
-    /* ---------- Category (required, FK must exist) ---------- */
     if (!$category_id) {
         $errors[] = 'Please select a category.';
     } else {
@@ -99,26 +83,22 @@ function validate_event(PDO $pdo, array $data): array
         }
     }
 
-    /* ---------- Title ---------- */
     if ($title === '' || mb_strlen($title) < 2) {
         $errors[] = 'Event title must be at least 2 characters.';
     } elseif (mb_strlen($title) > 150) {
         $errors[] = 'Title cannot exceed 150 characters.';
     }
 
-    /* ---------- Description ---------- */
     if ($description === '' || mb_strlen($description) < 10) {
         $errors[] = 'Description is required (at least 10 characters).';
     } elseif (mb_strlen($description) > 2000) {
         $errors[] = 'Description cannot exceed 2000 characters.';
     }
 
-    /* ---------- Event type ---------- */
     if (!in_array($event_type, ['solo', 'team'], true)) {
         $errors[] = 'Select a valid event type.';
     }
 
-    /* ---------- Team size (only enforced for team events) ---------- */
     if ($event_type === 'team') {
         if ($min_team_size === false || $min_team_size < 1) {
             $errors[] = 'Minimum team size must be at least 1.';
@@ -134,12 +114,10 @@ function validate_event(PDO $pdo, array $data): array
         }
     }
 
-    /* ---------- Fee type ---------- */
     if (!in_array($fee_type, ['per_person', 'per_team'], true)) {
         $errors[] = 'Select a valid fee type.';
     }
 
-    /* ---------- Registration fee ---------- */
     if ($registration_fee === false) {
         $errors[] = 'Enter a valid registration fee.';
     } elseif ($registration_fee < 0) {
@@ -148,7 +126,6 @@ function validate_event(PDO $pdo, array $data): array
         $errors[] = 'Registration fee cannot exceed ₹10,00,000.';
     }
 
-    /* ---------- Event date ---------- */
     $eventDateObj = null;
     if ($event_date === '') {
         $errors[] = 'Event date is required.';
@@ -161,7 +138,6 @@ function validate_event(PDO $pdo, array $data): array
         }
     }
 
-    /* ---------- Start / End time (both required) ---------- */
     if ($start_time === '') {
         $errors[] = 'Start time is required.';
     }
@@ -178,7 +154,6 @@ function validate_event(PDO $pdo, array $data): array
         }
     }
 
-    /* ---------- Registration deadline (required) ---------- */
     if ($registration_deadline === '') {
         $errors[] = 'Registration deadline is required.';
     } else {
@@ -197,21 +172,18 @@ function validate_event(PDO $pdo, array $data): array
         }
     }
 
-    /* ---------- Venue (required) ---------- */
     if ($venue === '' || mb_strlen($venue) < 3) {
         $errors[] = 'Venue is required (at least 3 characters).';
     } elseif (mb_strlen($venue) > 200) {
         $errors[] = 'Venue cannot exceed 200 characters.';
     }
 
-    /* ---------- Dress code (required) ---------- */
     if ($dress_code === '' || mb_strlen($dress_code) < 2) {
         $errors[] = 'Dress code is required.';
     } elseif (mb_strlen($dress_code) > 255) {
         $errors[] = 'Dress code cannot exceed 255 characters.';
     }
 
-    /* ---------- Status ---------- */
     if (!in_array($status, ['draft', 'published', 'completed', 'cancelled'], true)) {
         $errors[] = 'Select a valid status.';
     }
@@ -252,9 +224,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle
 
 /* =========================================================
    AJAX: UNIQUENESS / EXISTENCE CHECK (college_id)
-   all_events.php?action=check_college  (POST, JSON body: { college_id })
-   Lets the "Add Event" / "Edit Event" forms confirm a college is valid
-   before submit, the same way colleges.php checks slug/email asynchronously.
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_college') {
     header('Content-Type: application/json');
@@ -318,7 +287,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         if (empty($errors)) {
             try {
                 $eventType = trim($_POST['event_type']);
-                // Solo events always store 1/1 regardless of what the (hidden) team fields carried.
                 $minTeamSize = $eventType === 'team' ? (int)($_POST['min_team_size'] ?? 1) : 1;
                 $maxTeamSize = $eventType === 'team' ? (int)($_POST['max_team_size'] ?? 1) : 1;
 
@@ -347,7 +315,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 
                 $_SESSION['flash'] = ['type' => 'success', 'message' => 'Event added successfully.'];
             } catch (PDOException $e) {
-                // 23000 = integrity constraint violation, e.g. college_id foreign key rejected at the DB level
                 $errors[] = $e->getCode() === '23000'
                     ? 'The selected college/category is no longer valid.'
                     : 'Could not save event. Please try again.';
@@ -414,7 +381,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                     'venue'                 => trim($_POST['venue'] ?? ''),
                     'dress_code'            => trim($_POST['dress_code'] ?? ''),
                     'status'                => trim($_POST['status']),
-                    'id'                     => $id,
+                    'id'                    => $id,
                 ]);
 
                 $_SESSION['flash'] = ['type' => 'success', 'message' => 'Event updated successfully.'];
@@ -435,9 +402,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     }
 }
 
-// Fetch lists for the simple select dropdown boxes
-// Colleges are the direct parent of an event, exactly like a University is the
-// direct parent of a College in colleges.php.
+// Fetch lists for select dropdown boxes
 $colleges   = $pdo->query('SELECT college_id, name, status FROM colleges ORDER BY name ASC')->fetchAll();
 $categories = $pdo->query('SELECT category_id, name FROM categories ORDER BY name ASC')->fetchAll();
 
@@ -484,7 +449,7 @@ $todayDate = date('Y-m-d');
         .icon-primary { background: #e8edff; color: #4f46e5; }
         .icon-success { background: #e7f8ef; color: #198754; }
         .icon-warning { background: #fff8e6; color: #ffc107; }
-        .main-card { border: 0; border-radius: 16px; overflow: hidden; }
+        .main-card { border: 0; border-radius: 16px; }
         .main-card-header { background: #ffffff; padding: 20px 24px; border-bottom: 1px solid #edf0f5; }
         .search-box { position: relative; }
         .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
@@ -495,10 +460,14 @@ $todayDate = date('Y-m-d');
         .table tbody tr:hover { background-color: #f8faff; }
         .event-name { font-weight: 600; color: #1f2937; }
         .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; text-transform: capitalize; }
-        .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff; }
+        .action-btn:hover { background-color: #f3f4f6; }
         .async-feedback { min-height: 18px; }
         .async-feedback.text-success { color: #198754 !important; }
         .async-spinner { position: absolute; right: 14px; top: 50%; transform: translateY(-50%); }
+        .action-option-btn { width: 100%; text-align: left; padding: 12px 16px; border-radius: 10px; border: 0; background: #f8f9fa; font-weight: 500; color: #374151; transition: 0.2s ease; margin-bottom: 8px; display: flex; align-items: center; }
+        .action-option-btn:hover { background: #eef2ff; color: #4f46e5; }
+        .action-option-btn.delete-option:hover { background: #fdecec; color: #dc3545; }
         @media (max-width: 768px) {
             .main-card-header { padding: 16px; }
             .table { min-width: 950px; }
@@ -693,12 +662,9 @@ $todayDate = date('Y-m-d');
                                                 </select>
                                             </td>
                                             <td class="text-end">
-                                                <button type="button" class="btn btn-light action-btn me-1" title="Edit"
-                                                    data-bs-toggle="modal" data-bs-target="#editEventModal<?= (int)$e['event_id'] ?>">
-                                                    <i class="bi bi-pencil text-primary"></i>
-                                                </button>
-                                                <button type="button" class="btn btn-light action-btn" title="Delete" onclick="deleteEvent(<?= (int)$e['event_id'] ?>)">
-                                                    <i class="bi bi-trash text-danger"></i>
+                                                <!-- Three dots trigger button -> Opens Action Menu Popup -->
+                                                <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#actionMenuModal<?= (int)$e['event_id'] ?>" title="Actions">
+                                                    <i class="bi bi-three-dots-vertical text-muted"></i>
                                                 </button>
                                             </td>
                                         </tr>
@@ -715,153 +681,142 @@ $todayDate = date('Y-m-d');
         </div>
     </div>
 
-    <!-- ===================== MODAL: ADD EVENT ===================== -->
-    <div class="modal fade" id="addEventModal" tabindex="-1" aria-hidden="true">
-        <div class="modal-dialog modal-lg modal-dialog-centered">
-            <div class="modal-content">
-                <form method="POST" class="needs-validation event-form" novalidate>
-                    <input type="hidden" name="form_action" value="create">
-
-                    <div class="modal-header">
-                        <h5 class="modal-title">Add New Event</h5>
+    <!-- ===================== MODALS PER ROW ===================== -->
+    <?php foreach ($events as $e): ?>
+        
+        <!-- 1. POPUP ACTION MENU MODAL -->
+        <div class="modal fade" id="actionMenuModal<?= (int)$e['event_id'] ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-dialog-centered modal-sm">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header border-0 pb-0">
+                        <h6 class="modal-title font-semibold text-muted">Event Actions</h6>
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
+                    <div class="modal-body p-3">
+                        <!-- Option 1: View -->
+                        <button type="button" class="action-option-btn" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#viewEventModal<?= (int)$e['event_id'] ?>">
+                            <i class="bi bi-eye text-info me-3 fs-5"></i> View Details
+                        </button>
+                        
+                        <!-- Option 2: Edit -->
+                        <button type="button" class="action-option-btn" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#editEventModal<?= (int)$e['event_id'] ?>">
+                            <i class="bi bi-pencil text-primary me-3 fs-5"></i> Edit Event
+                        </button>
+                        
+                        <!-- Option 3: Delete -->
+                        <button type="button" class="action-option-btn delete-option text-danger" data-bs-dismiss="modal" onclick="deleteEvent(<?= (int)$e['event_id'] ?>)">
+                            <i class="bi bi-trash text-danger me-3 fs-5"></i> Delete Event
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
 
-                    <div class="modal-body">
+        <!-- 2. VIEW DETAILS MODAL -->
+        <div class="modal fade" id="viewEventModal<?= (int)$e['event_id'] ?>" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog modal-lg modal-dialog-centered">
+                <div class="modal-content border-0 shadow">
+                    <div class="modal-header">
+                        <h5 class="modal-title d-flex align-items-center">
+                            <i class="bi bi-info-circle text-primary me-2"></i>
+                            <?= htmlspecialchars($e['title']) ?>
+                        </h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body p-4">
                         <div class="row g-3">
                             <div class="col-md-6">
-                                <label class="form-label">College *</label>
-                                <div class="position-relative">
-                                    <select class="form-select" name="college_id" required data-async-check="college"
-                                        aria-describedby="collegeAsyncFeedbackAdd">
-                                        <option value="">Choose College</option>
-                                        <?php foreach ($colleges as $c): ?>
-                                            <option value="<?= (int)$c['college_id'] ?>"><?= htmlspecialchars($c['name']) ?><?= $c['status'] === 'inactive' ? ' (Inactive)' : '' ?></option>
-                                        <?php endforeach; ?>
-                                    </select>
-                                    <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
+                                <label class="text-muted small fw-semibold d-block mb-1">COLLEGE</label>
+                                <div class="fw-semibold text-dark"><?= htmlspecialchars($collegeLookup[$e['college_id']] ?? 'Unknown') ?></div>
+                            </div>
+                            <div class="col-md-6">
+                                <label class="text-muted small fw-semibold d-block mb-1">CATEGORY</label>
+                                <div class="fw-semibold text-dark"><?= htmlspecialchars($categoryLookup[$e['category_id']] ?? 'None') ?></div>
+                            </div>
+
+                            <div class="col-12"><hr class="my-1 text-muted opacity-25"></div>
+
+                            <div class="col-md-4">
+                                <label class="text-muted small fw-semibold d-block mb-1">EVENT TYPE</label>
+                                <div>
+                                    <span class="badge <?= $e['event_type'] === 'solo' ? 'bg-primary' : 'bg-secondary' ?> text-capitalize">
+                                        <?= htmlspecialchars($e['event_type']) ?>
+                                    </span>
                                 </div>
-                                <div class="invalid-feedback">Please select a college.</div>
-                                <div class="async-feedback small mt-1" id="collegeAsyncFeedbackAdd" role="alert" aria-live="polite"></div>
                             </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Category *</label>
-                                <select class="form-select" name="category_id" required>
-                                    <option value="">Choose Category</option>
-                                    <?php foreach ($categories as $cat): ?>
-                                        <option value="<?= (int)$cat['category_id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
-                                    <?php endforeach; ?>
-                                </select>
-                                <div class="invalid-feedback">Please select a category.</div>
-                            </div>
-
-                            <div class="col-12">
-                                <label class="form-label">Title *</label>
-                                <input type="text" class="form-control" name="title" required minlength="2" maxlength="150" placeholder="Event Name">
-                                <div class="invalid-feedback">Enter a valid title (2-150 characters).</div>
-                            </div>
-
-                            <div class="col-md-6">
-                                <label class="form-label">Event Type *</label>
-                                <select class="form-select type-select" name="event_type" required>
-                                    <option value="solo" selected>Solo</option>
-                                    <option value="team">Team</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-3 team-fields d-none">
-                                <label class="form-label">Min Team Size</label>
-                                <input type="number" class="form-control" name="min_team_size" value="1" min="1" max="100">
-                                <div class="invalid-feedback">Min team size must be at least 1.</div>
-                            </div>
-
-                            <div class="col-md-3 team-fields d-none">
-                                <label class="form-label">Max Team Size</label>
-                                <input type="number" class="form-control" name="max_team_size" value="1" min="1" max="100">
-                                <div class="invalid-feedback">Max team size cannot be less than min.</div>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label">Fee Type *</label>
-                                <select class="form-select" name="fee_type" required>
-                                    <option value="per_person" selected>Per Person</option>
-                                    <option value="per_team">Per Team</option>
-                                </select>
-                            </div>
-
-                            <div class="col-md-4">
-                                <label class="form-label">Registration Fee *</label>
-                                <div class="input-group">
-                                    <span class="input-group-text">₹</span>
-                                    <input type="number" class="form-control" name="registration_fee" step="0.01" min="0" max="1000000" value="0.00" required>
+                            <?php if ($e['event_type'] === 'team'): ?>
+                                <div class="col-md-4">
+                                    <label class="text-muted small fw-semibold d-block mb-1">MIN TEAM SIZE</label>
+                                    <div class="fw-semibold text-dark"><?= (int)$e['min_team_size'] ?> Person(s)</div>
                                 </div>
-                                <div class="invalid-feedback">Enter a fee between 0 and 10,00,000.</div>
-                            </div>
+                                <div class="col-md-4">
+                                    <label class="text-muted small fw-semibold d-block mb-1">MAX TEAM SIZE</label>
+                                    <div class="fw-semibold text-dark"><?= (int)$e['max_team_size'] ?> Person(s)</div>
+                                </div>
+                            <?php endif; ?>
 
                             <div class="col-md-4">
-                                <label class="form-label">Status *</label>
-                                <select class="form-select" name="status" required>
-                                    <option value="draft" selected>Draft</option>
-                                    <option value="published">Published</option>
-                                </select>
+                                <label class="text-muted small fw-semibold d-block mb-1">REGISTRATION FEE</label>
+                                <div class="fw-bold text-dark">₹<?= number_format($e['registration_fee'], 2) ?> <small class="text-muted font-normal">(<?= $e['fee_type'] === 'per_person' ? 'Per Person' : 'Per Team' ?>)</small></div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="text-muted small fw-semibold d-block mb-1">STATUS</label>
+                                <div>
+                                    <span class="badge status-badge <?= $statusClasses[$e['status']] ?? 'bg-secondary-subtle' ?>">
+                                        <?= htmlspecialchars($e['status']) ?>
+                                    </span>
+                                </div>
                             </div>
 
-                            <div class="col-md-4">
-                                <label class="form-label">Date *</label>
-                                <input type="date" class="form-control event-date-input" name="event_date" required min="<?= htmlspecialchars($todayDate) ?>">
-                                <div class="invalid-feedback">Please select a valid date.</div>
-                            </div>
+                            <div class="col-12"><hr class="my-1 text-muted opacity-25"></div>
 
                             <div class="col-md-4">
-                                <label class="form-label">Start Time *</label>
-                                <input type="time" class="form-control start-time-input" name="start_time" required>
-                                <div class="invalid-feedback">Start time is required.</div>
+                                <label class="text-muted small fw-semibold d-block mb-1">EVENT DATE</label>
+                                <div class="fw-semibold text-dark"><i class="bi bi-calendar3 me-1 text-primary"></i> <?= date('d M Y', strtotime($e['event_date'])) ?></div>
                             </div>
-
                             <div class="col-md-4">
-                                <label class="form-label">End Time *</label>
-                                <input type="time" class="form-control end-time-input" name="end_time" required>
-                                <div class="invalid-feedback">End time must be after start time.</div>
+                                <label class="text-muted small fw-semibold d-block mb-1">TIMINGS</label>
+                                <div class="fw-semibold text-dark">
+                                    <i class="bi bi-clock me-1 text-primary"></i> 
+                                    <?= !empty($e['start_time']) ? date('h:i A', strtotime($e['start_time'])) : 'N/A' ?> - 
+                                    <?= !empty($e['end_time']) ? date('h:i A', strtotime($e['end_time'])) : 'N/A' ?>
+                                </div>
+                            </div>
+                            <div class="col-md-4">
+                                <label class="text-muted small fw-semibold d-block mb-1">REGISTRATION DEADLINE</label>
+                                <div class="fw-semibold text-danger">
+                                    <i class="bi bi-hourglass-split me-1"></i>
+                                    <?= !empty($e['registration_deadline']) ? date('d M Y, h:i A', strtotime($e['registration_deadline'])) : 'N/A' ?>
+                                </div>
                             </div>
 
                             <div class="col-md-6">
-                                <label class="form-label">Registration Deadline *</label>
-                                <input type="datetime-local" class="form-control deadline-input" name="registration_deadline" required>
-                                <div class="invalid-feedback">Deadline must be on or before the event date.</div>
+                                <label class="text-muted small fw-semibold d-block mb-1">VENUE</label>
+                                <div class="fw-semibold text-dark"><i class="bi bi-geo-alt me-1 text-primary"></i> <?= htmlspecialchars($e['venue'] ?: 'N/A') ?></div>
                             </div>
-
                             <div class="col-md-6">
-                                <label class="form-label">Venue *</label>
-                                <input type="text" class="form-control" name="venue" required minlength="3" maxlength="200" placeholder="Room, Auditorium, Ground...">
-                                <div class="invalid-feedback">Venue is required (min 3 characters).</div>
+                                <label class="text-muted small fw-semibold d-block mb-1">DRESS CODE</label>
+                                <div class="fw-semibold text-dark"><i class="bi bi-person-workspace me-1 text-primary"></i> <?= htmlspecialchars($e['dress_code'] ?: 'N/A') ?></div>
                             </div>
 
-                            <div class="col-12">
-                                <label class="form-label">Dress Code *</label>
-                                <input type="text" class="form-control" name="dress_code" required minlength="2" maxlength="255" placeholder="e.g., Casual, Formals, Traditional">
-                                <div class="invalid-feedback">Dress code is required.</div>
-                            </div>
+                            <div class="col-12"><hr class="my-1 text-muted opacity-25"></div>
 
                             <div class="col-12">
-                                <label class="form-label">Description *</label>
-                                <textarea class="form-control" name="description" required minlength="10" maxlength="2000" style="height: 90px;" placeholder="Write structural description or event details..."></textarea>
-                                <div class="invalid-feedback">Description is required (min 10 characters).</div>
+                                <label class="text-muted small fw-semibold d-block mb-1">DESCRIPTION</label>
+                                <div class="bg-light p-3 rounded-3 text-secondary" style="white-space: pre-line; max-height: 150px; overflow-y: auto;">
+                                    <?= htmlspecialchars($e['description']) ?>
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
-                        <button type="submit" class="btn btn-primary">Save Event</button>
+                    <div class="modal-footer bg-light">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
                     </div>
-                </form>
+                </div>
             </div>
         </div>
-    </div>
 
-    <!-- ===================== MODAL: EDIT EVENT ===================== -->
-    <?php foreach ($events as $e): ?>
+        <!-- 3. EDIT EVENT MODAL -->
         <div class="modal fade" id="editEventModal<?= (int)$e['event_id'] ?>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
@@ -1013,6 +968,151 @@ $todayDate = date('Y-m-d');
         </div>
     <?php endforeach; ?>
 
+    <!-- ===================== MODAL: ADD EVENT ===================== -->
+    <div class="modal fade" id="addEventModal" tabindex="-1" aria-hidden="true">
+        <div class="modal-dialog modal-lg modal-dialog-centered">
+            <div class="modal-content">
+                <form method="POST" class="needs-validation event-form" novalidate>
+                    <input type="hidden" name="form_action" value="create">
+
+                    <div class="modal-header">
+                        <h5 class="modal-title">Add New Event</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+
+                    <div class="modal-body">
+                        <div class="row g-3">
+                            <div class="col-md-6">
+                                <label class="form-label">College *</label>
+                                <div class="position-relative">
+                                    <select class="form-select" name="college_id" required data-async-check="college"
+                                        aria-describedby="collegeAsyncFeedbackAdd">
+                                        <option value="">Choose College</option>
+                                        <?php foreach ($colleges as $c): ?>
+                                            <option value="<?= (int)$c['college_id'] ?>"><?= htmlspecialchars($c['name']) ?><?= $c['status'] === 'inactive' ? ' (Inactive)' : '' ?></option>
+                                        <?php endforeach; ?>
+                                    </select>
+                                    <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
+                                </div>
+                                <div class="invalid-feedback">Please select a college.</div>
+                                <div class="async-feedback small mt-1" id="collegeAsyncFeedbackAdd" role="alert" aria-live="polite"></div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Category *</label>
+                                <select class="form-select" name="category_id" required>
+                                    <option value="">Choose Category</option>
+                                    <?php foreach ($categories as $cat): ?>
+                                        <option value="<?= (int)$cat['category_id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
+                                    <?php endforeach; ?>
+                                </select>
+                                <div class="invalid-feedback">Please select a category.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Title *</label>
+                                <input type="text" class="form-control" name="title" required minlength="2" maxlength="150" placeholder="Event Name">
+                                <div class="invalid-feedback">Enter a valid title (2-150 characters).</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Event Type *</label>
+                                <select class="form-select type-select" name="event_type" required>
+                                    <option value="solo" selected>Solo</option>
+                                    <option value="team">Team</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-3 team-fields d-none">
+                                <label class="form-label">Min Team Size</label>
+                                <input type="number" class="form-control" name="min_team_size" value="1" min="1" max="100">
+                                <div class="invalid-feedback">Min team size must be at least 1.</div>
+                            </div>
+
+                            <div class="col-md-3 team-fields d-none">
+                                <label class="form-label">Max Team Size</label>
+                                <input type="number" class="form-control" name="max_team_size" value="1" min="1" max="100">
+                                <div class="invalid-feedback">Max team size cannot be less than min.</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Fee Type *</label>
+                                <select class="form-select" name="fee_type" required>
+                                    <option value="per_person" selected>Per Person</option>
+                                    <option value="per_team">Per Team</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Registration Fee *</label>
+                                <div class="input-group">
+                                    <span class="input-group-text">₹</span>
+                                    <input type="number" class="form-control" name="registration_fee" step="0.01" min="0" max="1000000" value="0.00" required>
+                                </div>
+                                <div class="invalid-feedback">Enter a fee between 0 and 10,00,000.</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Status *</label>
+                                <select class="form-select" name="status" required>
+                                    <option value="draft" selected>Draft</option>
+                                    <option value="published">Published</option>
+                                </select>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Date *</label>
+                                <input type="date" class="form-control event-date-input" name="event_date" required min="<?= htmlspecialchars($todayDate) ?>">
+                                <div class="invalid-feedback">Please select a valid date.</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">Start Time *</label>
+                                <input type="time" class="form-control start-time-input" name="start_time" required>
+                                <div class="invalid-feedback">Start time is required.</div>
+                            </div>
+
+                            <div class="col-md-4">
+                                <label class="form-label">End Time *</label>
+                                <input type="time" class="form-control end-time-input" name="end_time" required>
+                                <div class="invalid-feedback">End time must be after start time.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Registration Deadline *</label>
+                                <input type="datetime-local" class="form-control deadline-input" name="registration_deadline" required>
+                                <div class="invalid-feedback">Deadline must be on or before the event date.</div>
+                            </div>
+
+                            <div class="col-md-6">
+                                <label class="form-label">Venue *</label>
+                                <input type="text" class="form-control" name="venue" required minlength="3" maxlength="200" placeholder="Room, Auditorium, Ground...">
+                                <div class="invalid-feedback">Venue is required (min 3 characters).</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Dress Code *</label>
+                                <input type="text" class="form-control" name="dress_code" required minlength="2" maxlength="255" placeholder="e.g., Casual, Formals, Traditional">
+                                <div class="invalid-feedback">Dress code is required.</div>
+                            </div>
+
+                            <div class="col-12">
+                                <label class="form-label">Description *</label>
+                                <textarea class="form-control" name="description" required minlength="10" maxlength="2000" style="height: 90px;" placeholder="Write structural description or event details..."></textarea>
+                                <div class="invalid-feedback">Description is required (min 10 characters).</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancel</button>
+                        <button type="submit" class="btn btn-primary">Save Event</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <?php include_once("Footer.php"); ?>
 
     <script src="assets/js/plugins/simplebar.min.js"></script>
@@ -1027,28 +1127,11 @@ $todayDate = date('Y-m-d');
     <script>
         // =====================================================================
         // FIELD-LEVEL VALIDATION ENGINE
-        //
-        // Bootstrap's default ".was-validated :valid" approach marks EVERY
-        // field satisfying its constraints as "valid" (green) - including
-        // optional fields that are simply empty. That makes an untouched form
-        // look like Venue/Dress Code/Description/Start Time/etc. were filled
-        // in correctly when they weren't. This engine replaces that with
-        // explicit per-field classes so a field only ever shows:
-        //   - red (is-invalid)  -> required-and-empty, OR has a value that
-        //                          fails a rule
-        //   - green (is-valid)  -> has a value AND that value passes all rules
-        //   - neutral (nothing) -> optional and still empty
         // =====================================================================
         function isFieldEmpty(field) {
             return field.value === null || field.value.trim() === '';
         }
 
-        // Bootstrap only auto-shows a .invalid-feedback block when it's an
-        // IMMEDIATE sibling of the .is-invalid element. Several of our fields
-        // (college select, fee input, deadline input) wrap the control in a
-        // .position-relative/.input-group div for a spinner/prefix, which
-        // breaks that sibling relationship. So we show/hide the message
-        // ourselves instead of relying on Bootstrap's CSS alone.
         function findFeedbackEl(field) {
             const group = field.closest('[class*="col-"]');
             return group ? group.querySelector('.invalid-feedback') : null;
@@ -1060,7 +1143,6 @@ $todayDate = date('Y-m-d');
             const empty = isFieldEmpty(field);
             const feedbackEl = findFeedbackEl(field);
 
-            // Optional + still empty => neutral, no red/green, no message.
             if (!field.required && empty) {
                 field.classList.remove('is-valid', 'is-invalid');
                 if (feedbackEl) feedbackEl.style.display = 'none';
@@ -1087,8 +1169,6 @@ $todayDate = date('Y-m-d');
         document.querySelectorAll('.event-form').forEach(form => {
             const fields = form.querySelectorAll('input, select, textarea');
 
-            // Live per-field feedback as the user actually interacts with it -
-            // nothing is marked valid/invalid until it has been touched.
             fields.forEach(field => {
                 if (field.type === 'hidden') return;
                 ['input', 'change', 'blur'].forEach(evt => {
@@ -1100,14 +1180,13 @@ $todayDate = date('Y-m-d');
                 if (!validateForm(form)) {
                     e.preventDefault();
                     e.stopPropagation();
-                    // Bring the first invalid field into view for the user.
                     const firstInvalid = form.querySelector('.is-invalid');
                     if (firstInvalid) firstInvalid.focus({ preventScroll: false });
                 }
             });
         });
 
-        // ===================== Team size fields: show/require only for "team" events =====================
+        // ===================== Team size fields =====================
         function syncTeamFieldRequirement(typeSelect, fieldsSelector) {
             const isTeam = typeSelect.value === 'team';
             const container = typeSelect.closest('.row');
@@ -1127,7 +1206,6 @@ $todayDate = date('Y-m-d');
             });
         }
 
-        // Add Modal: Toggle Min/Max Team boxes depending on selection
         const typeSelect = document.querySelector('.type-select');
         if (typeSelect) {
             syncTeamFieldRequirement(typeSelect, '.team-fields');
@@ -1136,7 +1214,6 @@ $todayDate = date('Y-m-d');
             });
         }
 
-        // Edit Modal: Toggle Min/Max Team boxes depending on selection
         document.querySelectorAll('.edit-type-select').forEach(sel => {
             syncTeamFieldRequirement(sel, '.edit-team-fields');
             sel.addEventListener('change', function() {
@@ -1144,7 +1221,7 @@ $todayDate = date('Y-m-d');
             });
         });
 
-        // ===================== Cross-field validation: min/max team size, start/end time, deadline vs event date =====================
+        // ===================== Cross-field validation =====================
         document.querySelectorAll('.event-form').forEach(form => {
             const minInput   = form.querySelector('input[name="min_team_size"]');
             const maxInput   = form.querySelector('input[name="max_team_size"]');
@@ -1310,8 +1387,6 @@ $todayDate = date('Y-m-d');
         }
 
         // ===================== ASYNC COLLEGE EXISTENCE CHECK =====================
-        // Mirrors the async slug/email checks in colleges.php: confirms the picked
-        // college is still a real, valid record before the user submits.
         (function() {
             const DEBOUNCE_MS = 350;
             const timers = new WeakMap();
@@ -1335,7 +1410,6 @@ $todayDate = date('Y-m-d');
                     feedbackEl.classList.remove("text-success", "text-warning");
                     feedbackEl.classList.add("text-danger");
                 } else if (state === "checking") {
-                    // Mid-flight: no red/green yet, just the spinner + message.
                     select.classList.remove('is-valid', 'is-invalid');
                     feedbackEl.textContent = "Checking college…";
                     feedbackEl.classList.remove("text-success", "text-danger", "text-warning");
@@ -1346,8 +1420,6 @@ $todayDate = date('Y-m-d');
                     feedbackEl.classList.remove("text-success", "text-danger", "text-warning");
                 }
 
-                // Keep the select's red/green border in sync with the async result
-                // (the generic validateField() only knows about sync HTML5 constraints).
                 if (typeof validateField === 'function') validateField(select);
             }
 
@@ -1377,8 +1449,6 @@ $todayDate = date('Y-m-d');
 
                     setState(select, feedbackEl, spinner, data.valid ? "valid" : "invalid", data.message);
                 } catch {
-                    // Network failure: don't hard-block client-side; the final
-                    // server-side validate_event() check on submit is authoritative.
                     setState(select, feedbackEl, spinner, "idle");
                 }
             }
