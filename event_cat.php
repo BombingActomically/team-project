@@ -49,6 +49,12 @@ function validate_category(PDO $pdo, array $data, ?int $excludeId = null): array
         $errors[] = 'Category name must be at least 2 characters.';
     } elseif (mb_strlen($name) > 100) {
         $errors[] = 'Category name is too long.';
+    } elseif (preg_match('/^[\d\s]+$/', $name)) {
+        // Rejects names that are purely numbers/spaces (e.g. "123", "45 67").
+        $errors[] = 'Category name cannot be numbers only. It must contain letters.';
+    } elseif (!preg_match('/[A-Za-z]/u', $name)) {
+        // Extra safety net for names with no letters at all (e.g. only symbols).
+        $errors[] = 'Category name must contain letters.';
     }
 
     if (!in_array($status, ['active', 'inactive'], true)) {
@@ -466,8 +472,9 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
                             <div class="col-12">
                                 <label class="form-label">Category Name</label>
-                                <input type="text" class="form-control" name="name" required minlength="2" maxlength="100">
-                                <div class="invalid-feedback">Enter category name (min 2 characters).</div>
+                                <input type="text" class="form-control" name="name" required minlength="2" maxlength="100"
+                                    pattern="^(?!^[0-9\s]+$).+$" title="Category name cannot be numbers only.">
+                                <div class="invalid-feedback">Enter a valid category name (letters required, not numbers only).</div>
                             </div>
 
                             <div class="col-12">
@@ -512,8 +519,10 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
                                 <div class="col-12">
                                     <label class="form-label">Category Name</label>
-                                    <input type="text" class="form-control" name="name" required minlength="2" maxlength="100" value="<?= htmlspecialchars($c['name']) ?>">
-                                    <div class="invalid-feedback">Enter category name (min 2 characters).</div>
+                                    <input type="text" class="form-control" name="name" required minlength="2" maxlength="100"
+                                        pattern="^(?!^[0-9\s]+$).+$" title="Category name cannot be numbers only."
+                                        value="<?= htmlspecialchars($c['name']) ?>">
+                                    <div class="invalid-feedback">Enter a valid category name (letters required, not numbers only).</div>
                                 </div>
 
                                 <div class="col-12">
