@@ -449,7 +449,12 @@ $colleges = $pdo->query(
      ORDER BY c.created_at DESC'
 )->fetchAll();
 
-$universities = $pdo->query('SELECT university_id, name FROM universities ORDER BY name ASC')->fetchAll();
+$universities = $pdo->query("
+    SELECT university_id, name 
+    FROM universities 
+    WHERE status = 'active' 
+    ORDER BY name ASC
+")->fetchAll();
 
 $total    = count($colleges);
 $active   = count(array_filter($colleges, fn($c) => $c['status'] === 'active'));
