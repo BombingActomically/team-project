@@ -1,7 +1,7 @@
 <?php
 
 /**
- * students.php
+ * allstudents.php
  * Single-file Student management: DB connection, validation,
  * create / read / update / delete, account-status toggle (AJAX),
  * async uniqueness checks (AJAX), and UI.
@@ -309,7 +309,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete'
         $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Invalid student id.'];
     }
 
-    header('Location: students.php');
+    header('Location: allstudents.php');
     exit;
 }
 
@@ -351,7 +351,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             $_SESSION['flash'] = ['type' => 'danger', 'message' => implode(' ', $errors)];
             $_SESSION['reopen_modal'] = 'addStudentModal';
         }
-        header('Location: students.php');
+        header('Location: allstudents.php');
         exit;
     }
 
@@ -363,7 +363,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 
         if (!$id || !$existing) {
             $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Student not found.'];
-            header('Location: students.php');
+            header('Location: allstudents.php');
             exit;
         }
 
@@ -375,7 +375,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                 $newPhoto  = handle_image_upload($_FILES['profile_photo'] ?? null, $PHOTO_DIR, 'pf', false);
 
                 $idCardToStore = $newIdCard !== null ? $newIdCard : $existing['id_card_image'];
-                $photoToStore = $newPhoto !== null ? $newPhoto : $existing['profile_photo'];
+                $photoToStore  = $newPhoto !== null ? $newPhoto : $existing['profile_photo'];
+
+                if ($newIdCard !== null && !empty($existing['id_card_image'])) {
+                    $oldPath = $IDCARD_DIR . '/' . $existing['id_card_image'];
+                    if (is_file($oldPath)) unlink($oldPath);
+                }
+                if ($newPhoto !== null && !empty($existing['profile_photo'])) {
+                    $oldPath = $PHOTO_DIR . '/' . $existing['profile_photo'];
+                    if (is_file($oldPath)) unlink($oldPath);
+                }
 
                 $stmt = $pdo->prepare(
                     'UPDATE students
@@ -415,7 +424,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             $_SESSION['flash'] = ['type' => 'danger', 'message' => implode(' ', $errors)];
             $_SESSION['reopen_modal'] = 'editStudentModal' . $id;
         }
-        header('Location: students.php');
+        header('Location: allstudents.php');
         exit;
     }
 }
@@ -455,7 +464,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             --ink: #1B2430;
             --ink-2: #45505E;
             
-            /* Primary Colors Unified to match alluniversity.php */
             --accent: #4f46e5;
             --accent-hover: #3b31d1;
             --accent-bg: #e8edff;
@@ -493,7 +501,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             font-family: 'Inter', -apple-system, sans-serif;
         }
 
-        /* Unified Font Weight (Changed from 700 to 600) */
         .uni-title {
             font-weight: 600;
             font-size: 26px;
@@ -839,6 +846,12 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         .async-feedback {
             min-height: 18px;
             font-size: 12px;
+        }
+
+        .async-spinner {
+            position: absolute;
+            right: 10px;
+            top: calc(50% - 8px);
         }
 
         @media (max-width: 767px) {
@@ -1343,7 +1356,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 filterStudents();
                 this.disabled = true;
 
-                fetch("students.php?action=toggle_status", {
+                fetch("allstudents.php?action=toggle_status", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ id: studentId, status: isActive ? "active" : "inactive" })
@@ -1368,7 +1381,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
         function deleteStudent(id) {
             if (confirm("Are you sure you want to delete this student?")) {
-                window.location.href = "students.php?action=delete&id=" + id;
+                window.location.href = "allstudents.php?action=delete&id=" + id;
             }
         }
 
@@ -1423,7 +1436,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 setState(input, feedbackEl, spinner, "checking");
 
                 try {
-                    const res = await fetch("students.php?action=check_unique", {
+                    const res = await fetch("allstudents.php?action=check_unique", {
                         method: "POST",
                         headers: { "Content-Type": "application/json" },
                         body: JSON.stringify({ field, value, id: idField ? idField.value : null })
