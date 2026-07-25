@@ -13,7 +13,7 @@
     <div class="navbar-content h-[calc(100vh_-_74px)] py-2.5">
       <ul class="pc-navbar">
 
-        <!-- Navigation -->
+        <!-- Navigation Header -->
         <li class="pc-item pc-caption">
           <label>Navigation</label>
         </li>
@@ -25,8 +25,7 @@
           </a>
         </li>
 
-        <!-- University -->
-
+        <!-- University Management -->
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="globe"></i></span>
@@ -41,8 +40,7 @@
           </ul>
         </li>
 
-        <!-- College -->
-
+        <!-- College Management -->
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="monitor"></i></span>
@@ -58,29 +56,21 @@
         </li>
         
         <!-- Student Management -->
-        
-
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="users"></i></span>
             <span class="pc-mtext">Student</span>
-            <span class="pc-arrow">
-              <i class="ti ti-chevron-right"></i>
-            </span>
+            <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
 
           <ul class="pc-submenu">
-
             <li class="pc-item">
-              <a href="AllStudents.php" class="pc-link">
-                All Students
-              </a>
+              <a href="AllStudents.php" class="pc-link">All Students</a>
             </li>
           </ul>
         </li>
         
-        <!-- Category Management -->
-
+        <!-- Category Management (Cleaned) -->
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="grid"></i></span>
@@ -92,16 +82,14 @@
             <li class="pc-item">
               <a href="event_cat.php" class="pc-link">Event Categories</a>
             </li>
-            <li class="pc-item">
-              <a href="add_category.php" class="pc-link">Add Category</a>
-            </li>
           </ul>
         </li>
-        <!-- Event Categories -->
+
+        <!-- Event Management -->
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="calendar"></i></span>
-            <span class="pc-mtext">Event Categories</span>
+            <span class="pc-mtext">Events</span>
             <span class="pc-arrow"><i class="ti ti-chevron-right"></i></span>
           </a>
 
@@ -112,8 +100,7 @@
           </ul>
         </li>
         
-        <!-- Registration Category -->
-
+        <!-- Registration Management -->
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="user-plus"></i></span>
@@ -127,11 +114,8 @@
             </li>
           </ul>
         </li>
-    
 
         <!-- Team Category -->
-
-
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="layers"></i></span>
@@ -152,10 +136,7 @@
           </ul>
         </li>
 
-
         <!-- Notifications -->
-        
-
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="bell"></i></span>
@@ -174,8 +155,6 @@
         </li>
 
         <!-- Admin Settings -->
-        
-        
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="settings"></i></span>
@@ -196,11 +175,7 @@
           </ul>
         </li>
 
-        <!--Auth-->
-
         <!-- Entry Pass Management -->
-        
-
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="smartphone"></i></span>
@@ -225,8 +200,6 @@
         </li>
 
         <!-- Payment Management -->
-        
-
         <li class="pc-item pc-hasmenu">
           <a href="javascript:void(0)" class="pc-link">
             <span class="pc-micon"><i data-feather="trending-up"></i></span>
