@@ -2,7 +2,7 @@
 /**
  * event_cat.php
  * Single-file Event Category management: DB connection, validation,
- * create / read / update / delete, status toggle (AJAX), and UI.
+ * create / read / update / delete, status toggle (AJAX), limit & pagination, and UI.
  */
 
 include 'auth_check.php';
@@ -80,7 +80,6 @@ function validate_category(PDO $pdo, array $data, ?int $excludeId = null): array
 
 /* =========================================================
    AJAX: STATUS TOGGLE
-   event_cat.php?action=toggle_status  (POST, JSON body)
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle_status') {
     header('Content-Type: application/json');
@@ -112,7 +111,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle
 
 /* =========================================================
    DELETE
-   event_cat.php?action=delete&id=1  (GET)
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete') {
     $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -141,7 +139,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete'
 
 /* =========================================================
    CREATE / UPDATE
-   Normal form POST, using Post/Redirect/Get.
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 
@@ -188,7 +185,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
         if (empty($errors)) {
             try {
                 $stmt = $pdo->prepare(
-                    'UPDATE categories SET name = :name, status = :status WHERE category_id = :id'
+                    'UPDATE categories SET status = :status, name = :name WHERE category_id = :id'
                 );
                 $stmt->execute([
                     'name'   => trim($_POST['name']),
@@ -263,6 +260,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         .category-name { font-weight: 600; color: #1f2937; }
         .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .page-link { cursor: pointer; }
         @media (max-width: 768px) {
             .main-card-header { padding: 16px; }
             .table { min-width: 700px; }
@@ -446,8 +444,30 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     </div>
                 </div>
 
-                <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center">
-                    <small class="text-muted">Showing <?= $total ?> of <?= $total ?> categories</small>
+                <!-- Footer with 5, 10, 25 Limit Selector & Compact Pagination -->
+                <div class="card-footer bg-white border-top py-3">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-6 col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted text-nowrap">Show</small>
+                                <select class="form-select form-select-sm w-auto" id="limitSelect" style="font-size: 12px; padding-top: 2px; padding-bottom: 2px;">
+                                    <option value="5" selected>5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <small class="text-muted text-nowrap me-2">entries</small>
+                                <span class="text-muted opacity-50">|</span>
+                                <small class="text-muted ms-2" id="showingCountText">Showing 0 of 0 categories</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <nav aria-label="Table pagination">
+                                <ul class="pagination pagination-sm mb-0 justify-content-md-end justify-content-center" id="pagination">
+                                    <!-- Dynamic compact pagination controls inject here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -500,7 +520,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         </div>
     </div>
 
-    <!-- ===================== EDIT CATEGORY MODALS (one per row) ===================== -->
+    <!-- ===================== EDIT CATEGORY MODALS ===================== -->
     <?php foreach ($categories as $c): ?>
         <div class="modal fade" id="editCategoryModal<?= (int) $c['category_id'] ?>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-md modal-dialog-centered">
@@ -578,45 +598,130 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             });
         <?php endif; ?>
 
-        // Search & Filter
+        // Search, Filter, Limit & Compact Pagination Engine
         const searchInput = document.getElementById("searchCategory");
         const statusFilter = document.getElementById("statusFilter");
+        const limitSelect = document.getElementById("limitSelect");
         const rows = document.querySelectorAll("#categoryTable tbody tr");
+        const showingCountText = document.getElementById("showingCountText");
+        const paginationContainer = document.getElementById("pagination");
+
+        let currentPage = 1;
 
         function filterCategories() {
             const searchValue = searchInput.value.toLowerCase();
             const statusValue = statusFilter.value.toLowerCase();
+            const limitValue = limitSelect.value;
 
+            // 1. Filter matching rows
+            const matchedRows = [];
             rows.forEach(row => {
-                if (!row.querySelector(".status-badge")) return;
+                const badge = row.querySelector(".status-badge");
+                if (!badge) return; // skip empty state row
 
                 const rowText = row.innerText.toLowerCase();
-                const status = row.cells[2].innerText.toLowerCase().trim();
+                const status = badge.innerText.toLowerCase().trim();
 
                 const matchesSearch = rowText.includes(searchValue);
                 const matchesStatus = statusValue === "" || status === statusValue;
 
-                row.style.display = matchesSearch && matchesStatus ? "" : "none";
+                if (matchesSearch && matchesStatus) {
+                    matchedRows.push(row);
+                } else {
+                    row.style.display = "none";
+                }
             });
+
+            const totalMatched = matchedRows.length;
+            let pageSize = parseInt(limitValue, 10);
+            if (pageSize <= 0) pageSize = 1;
+
+            const totalPages = Math.ceil(totalMatched / pageSize) || 1;
+
+            // Clamp current page to valid range
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+
+            // 2. Render visible page subset
+            matchedRows.forEach((row, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            // 3. Update counter text
+            const visibleCount = Math.min(pageSize, totalMatched - startIdx > 0 ? totalMatched - startIdx : 0);
+            showingCountText.textContent = `Showing ${visibleCount} of ${totalMatched} categories`;
+
+            // 4. Build Compact Pagination Controls
+            renderPagination(totalPages);
         }
 
-        searchInput.addEventListener("keyup", filterCategories);
-        statusFilter.addEventListener("change", filterCategories);
+        function renderPagination(totalPages) {
+            paginationContainer.innerHTML = "";
+
+            // Hide pagination completely if there's only 1 page or no records
+            if (totalPages <= 1) return;
+
+            // 1. PREVIOUS BUTTON (Only renders/displays if NOT on Page 1)
+            if (currentPage > 1) {
+                const prevLi = document.createElement("li");
+                prevLi.className = "page-item";
+                prevLi.innerHTML = `<a class="page-link" aria-label="Previous"><i class="bi bi-chevron-left"></i> Prev</a>`;
+                prevLi.addEventListener("click", () => {
+                    currentPage--;
+                    filterCategories();
+                });
+                paginationContainer.appendChild(prevLi);
+            }
+
+            // 2. CURRENT PAGE NUMBER ONLY
+            const currentLi = document.createElement("li");
+            currentLi.className = "page-item active";
+            currentLi.innerHTML = `<a class="page-link">${currentPage}</a>`;
+            paginationContainer.appendChild(currentLi);
+
+            // 3. NEXT BUTTON (Only renders/displays if NOT on the last page)
+            if (currentPage < totalPages) {
+                const nextLi = document.createElement("li");
+                nextLi.className = "page-item";
+                nextLi.innerHTML = `<a class="page-link" aria-label="Next">Next <i class="bi bi-chevron-right"></i></a>`;
+                nextLi.addEventListener("click", () => {
+                    currentPage++;
+                    filterCategories();
+                });
+                paginationContainer.appendChild(nextLi);
+            }
+        }
+
+        searchInput.addEventListener("keyup", () => { currentPage = 1; filterCategories(); });
+        statusFilter.addEventListener("change", () => { currentPage = 1; filterCategories(); });
+        limitSelect.addEventListener("change", () => { currentPage = 1; filterCategories(); });
+
+        // Initial Filter Execution
+        document.addEventListener("DOMContentLoaded", filterCategories);
 
         // Status Toggle (AJAX)
         const activeCountBox = document.getElementById("activeCount");
         const inactiveCountBox = document.getElementById("inactiveCount");
 
         function setBadge(row, isActive) {
-            const badge = row.cells[2].querySelector(".status-badge");
-            if (isActive) {
-                badge.textContent = "Active";
-                badge.classList.remove("bg-danger-subtle", "text-danger");
-                badge.classList.add("bg-success-subtle", "text-success");
-            } else {
-                badge.textContent = "Inactive";
-                badge.classList.remove("bg-success-subtle", "text-success");
-                badge.classList.add("bg-danger-subtle", "text-danger");
+            const badge = row.querySelector(".status-badge");
+            if (badge) {
+                if (isActive) {
+                    badge.textContent = "Active";
+                    badge.classList.remove("bg-danger-subtle", "text-danger");
+                    badge.classList.add("bg-success-subtle", "text-success");
+                } else {
+                    badge.textContent = "Inactive";
+                    badge.classList.remove("bg-success-subtle", "text-success");
+                    badge.classList.add("bg-danger-subtle", "text-danger");
+                }
             }
         }
 
@@ -664,9 +769,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                         filterCategories();
                         alert("Could not update status. Please try again.");
                     })
-                    .finally(() => {
-                        toggle.disabled = false;
-                    });
+                    .finally(() => { toggle.disabled = false; });
             });
         });
 
