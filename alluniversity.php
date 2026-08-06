@@ -1102,7 +1102,6 @@ unset(
 
                                     <th>#</th>
                                     <th>University</th>
-                                    <th>Short Name</th>
                                     <th>Email</th>
                                     <th>Phone</th>
                                     <th>Status</th>
@@ -1124,7 +1123,7 @@ unset(
                                     <tr>
 
                                         <td
-                                            colspan="9"
+                                            colspan="8"
                                             class="text-center text-muted py-4">
 
                                             No universities yet.
@@ -1163,16 +1162,17 @@ unset(
                                                         class="university-logo"
                                                         alt="University Logo">
 
-                                                    <div class="university-name">
-                                                        <?= htmlspecialchars($u['name']) ?>
+                                                    <div>
+                                                        <div class="university-name">
+                                                            <?= htmlspecialchars($u['name']) ?>
+                                                        </div>
+                                                        <small class="text-muted d-block" style="font-size: 12px; line-height: 1.2; font-weight: 500;">
+                                                            <?= htmlspecialchars($u['short_name']) ?>
+                                                        </small>
                                                     </div>
 
                                                 </div>
 
-                                            </td>
-
-                                            <td>
-                                                <?= htmlspecialchars($u['short_name']) ?>
                                             </td>
 
                                             <td>
