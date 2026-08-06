@@ -1,16 +1,9 @@
 <?php
-
 /**
  * colleges.php
  * Single-file College management: DB connection, validation,
  * create / read / update / delete, status toggle (AJAX),
- * async uniqueness checks (AJAX), and UI.
- *
- * Assumes a `colleges` table:
- *   college_id, university_id, name, slug, email, phone, address,
- *   logo, status, created_at, updated_at
- * with university_id as a foreign key to universities.university_id.
- * Adjust column names below if yours differ.
+ * async uniqueness checks (AJAX), limit & pagination, and UI.
  */
 
 include 'auth_check.php';
@@ -103,7 +96,6 @@ function validate_college(
         $errors[] = 'Address is required (min 5 characters).';
     }
 
-    // Logo is mandatory: either a new file must be uploaded, or (on edit) one must already exist
     if (!logo_file_provided($logoFile) && empty($existingLogo)) {
         $errors[] = 'College logo is required.';
     }
@@ -112,7 +104,6 @@ function validate_college(
         $errors[] = 'Select a valid status.';
     }
 
-    // Password is required when creating a new college login; optional on edit (blank = keep current)
     if ($excludeId === null) {
         if (mb_strlen($password) < 8) {
             $errors[] = 'Password must be at least 8 characters.';
@@ -194,8 +185,7 @@ function handle_logo_upload(?array $file, string $destDir): ?string
 }
 
 /* =========================================================
-   AJAX: STATUS TOGGLE
-   colleges.php?action=toggle_status  (POST, JSON body)
+   AJAX HANDLERS
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle_status') {
     header('Content-Type: application/json');
@@ -225,13 +215,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle
     exit;
 }
 
-/* =========================================================
-   AJAX: UNIQUENESS CHECK (slug / email)
-   colleges.php?action=check_unique  (POST, JSON body)
-   Body: { field: "slug"|"email", value: "...", id: <int|null> }
-   `id` should be the current college_id when editing, so a
-   college doesn't get flagged as a duplicate of itself.
-   ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_unique') {
     header('Content-Type: application/json');
 
@@ -240,7 +223,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_
     $value     = trim($body['value'] ?? '');
     $excludeId = filter_var($body['id'] ?? null, FILTER_VALIDATE_INT) ?: null;
 
-    // Only these two columns are ever checked this way — never trust $field for raw SQL beyond this whitelist.
     if (!in_array($field, ['slug', 'email'], true) || $value === '') {
         http_response_code(422);
         echo json_encode(['available' => false, 'message' => 'Invalid request.']);
@@ -278,8 +260,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_
 }
 
 /* =========================================================
-   DELETE
-   colleges.php?action=delete&id=3  (GET)
+   DELETE & POST HANDLERS
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete') {
     $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -294,9 +275,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete'
 
             if (!empty($row['logo'])) {
                 $path = $LOGO_DIR . '/' . $row['logo'];
-                if (is_file($path)) {
-                    unlink($path);
-                }
+                if (is_file($path)) unlink($path);
             }
 
             $_SESSION['flash'] = ['type' => 'success', 'message' => 'College deleted successfully.'];
@@ -311,10 +290,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete'
     exit;
 }
 
-/* =========================================================
-   CREATE / UPDATE
-   Normal (non-AJAX) form POST, using Post/Redirect/Get.
-   ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 
     if ($_POST['form_action'] === 'create') {
@@ -345,8 +320,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
             } catch (RuntimeException $e) {
                 $errors[] = $e->getMessage();
             } catch (PDOException $e) {
-                // 23000 = integrity constraint violation (e.g. duplicate email), which the
-                // DB itself enforces via a UNIQUE index even if our app-level check missed it
                 $errors[] = $e->getCode() === '23000'
                     ? 'This email is already registered.'
                     : 'Could not save college. Please try again.';
@@ -385,9 +358,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                 if ($newLogo !== null) {
                     if (!empty($existing['logo'])) {
                         $oldPath = $LOGO_DIR . '/' . $existing['logo'];
-                        if (is_file($oldPath)) {
-                            unlink($oldPath);
-                        }
+                        if (is_file($oldPath)) unlink($oldPath);
                     }
                     $logoToStore = $newLogo;
                 }
@@ -440,7 +411,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 }
 
 /* =========================================================
-   DATA FOR DISPLAY
+   DATA FETCHING
    ========================================================= */
 $colleges = $pdo->query(
     'SELECT c.*, u.name AS university_name
@@ -449,12 +420,11 @@ $colleges = $pdo->query(
      ORDER BY c.created_at DESC'
 )->fetchAll();
 
-$universities = $pdo->query("
-    SELECT university_id, name 
-    FROM universities 
-    WHERE status = 'active' 
-    ORDER BY name ASC
-")->fetchAll();
+// Only fetch active universities for creation
+$activeUniversities = $pdo->query("SELECT university_id, name FROM universities WHERE status = 'active' ORDER BY name ASC")->fetchAll();
+
+// All universities for edit lookup
+$allUniversities = $pdo->query('SELECT university_id, name FROM universities ORDER BY name ASC')->fetchAll();
 
 $total    = count($colleges);
 $active   = count(array_filter($colleges, fn($c) => $c['status'] === 'active'));
@@ -468,7 +438,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 <html lang="en">
 
 <head>
-
     <title>All Colleges | Evenza Admin</title>
 
     <meta charset="utf-8">
@@ -479,189 +448,41 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
     <link rel="stylesheet" href="assets/css/style.css">
 
     <style>
-        body {
-            background-color: #f5f7fb;
-        }
-
-        .page-title {
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .page-subtitle {
-            color: #6b7280;
-            font-size: 14px;
-        }
-
-        .custom-breadcrumb {
-            display: flex;
-            align-items: center;
-            gap: 12px;
-            list-style: none;
-            padding: 0;
-            margin: 0;
-            font-size: 14px;
-        }
-
-        .custom-breadcrumb li {
-            color: #6b7280;
-        }
-
-        .custom-breadcrumb li a {
-            text-decoration: none;
-            color: #4f46e5;
-        }
-
-        .custom-breadcrumb li:not(:last-child)::after {
-            content: "/";
-            margin-left: 12px;
-            color: #adb5bd;
-        }
-
-        .stat-card {
-            border: 0;
-            border-radius: 14px;
-            transition: 0.3s ease;
-        }
-
-        .stat-card:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important;
-        }
-
-        .stat-icon {
-            width: 48px;
-            height: 48px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 12px;
-            font-size: 22px;
-        }
-
-        .icon-primary {
-            background: #e8edff;
-            color: #4f46e5;
-        }
-
-        .icon-success {
-            background: #e7f8ef;
-            color: #198754;
-        }
-
-        .icon-danger {
-            background: #fdecec;
-            color: #dc3545;
-        }
-
-        .main-card {
-            border: 0;
-            border-radius: 16px;
-            overflow: hidden;
-        }
-
-        .main-card-header {
-            background: #ffffff;
-            padding: 20px 24px;
-            border-bottom: 1px solid #edf0f5;
-        }
-
-        .search-box {
-            position: relative;
-        }
-
-        .search-box i {
-            position: absolute;
-            left: 14px;
-            top: 50%;
-            transform: translateY(-50%);
-            color: #9ca3af;
-        }
-
-        .search-box input {
-            padding-left: 40px;
-            border-radius: 10px;
-        }
-
-        .table thead th {
-            background: #f8f9fc;
-            color: #6b7280;
-            font-size: 13px;
-            font-weight: 600;
-            white-space: nowrap;
-            padding: 15px;
-        }
-
-        .table tbody td {
-            padding: 15px;
-            vertical-align: middle;
-            color: #374151;
-        }
-
-        .table tbody tr {
-            transition: 0.2s ease;
-        }
-
-        .table tbody tr:hover {
-            background-color: #f8faff;
-        }
-
-        .college-logo {
-            width: 46px;
-            height: 46px;
-            object-fit: cover;
-            border-radius: 12px;
-            border: 1px solid #e5e7eb;
-            background: #f8f9fa;
-        }
-
-        .college-name {
-            font-weight: 600;
-            color: #1f2937;
-        }
-
-        .status-badge {
-            padding: 6px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            font-weight: 600;
-        }
-
-        .action-btn {
-            width: 34px;
-            height: 34px;
-            display: inline-flex;
-            align-items: center;
-            justify-content: center;
-            border-radius: 8px;
-        }
-
-        .async-feedback {
-            min-height: 18px;
-        }
-
-        .async-feedback.text-success {
-            color: #198754 !important;
-        }
-
-        .async-spinner {
-            position: absolute;
-            right: 12px;
-            top: 50%;
-            transform: translateY(-50%);
-        }
-
+        body { background-color: #f5f7fb; }
+        .page-title { font-weight: 600; color: #1f2937; }
+        .page-subtitle { color: #6b7280; font-size: 14px; }
+        .custom-breadcrumb { display: flex; align-items: center; gap: 12px; list-style: none; padding: 0; margin: 0; font-size: 14px; }
+        .custom-breadcrumb li { color: #6b7280; }
+        .custom-breadcrumb li a { text-decoration: none; color: #4f46e5; }
+        .custom-breadcrumb li:not(:last-child)::after { content: "/"; margin-left: 12px; color: #adb5bd; }
+        .stat-card { border: 0; border-radius: 14px; transition: 0.3s ease; }
+        .stat-card:hover { transform: translateY(-3px); box-shadow: 0 10px 25px rgba(0, 0, 0, 0.08) !important; }
+        .stat-icon { width: 48px; height: 48px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 22px; }
+        .icon-primary { background: #e8edff; color: #4f46e5; }
+        .icon-success { background: #e7f8ef; color: #198754; }
+        .icon-danger { background: #fdecec; color: #dc3545; }
+        .main-card { border: 0; border-radius: 16px; overflow: hidden; }
+        .main-card-header { background: #ffffff; padding: 20px 24px; border-bottom: 1px solid #edf0f5; }
+        .search-box { position: relative; }
+        .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
+        .search-box input { padding-left: 40px; border-radius: 10px; }
+        .table thead th { background: #f8f9fc; color: #6b7280; font-size: 13px; font-weight: 600; white-space: nowrap; padding: 15px; }
+        .table tbody td { padding: 15px; vertical-align: middle; color: #374151; }
+        .table tbody tr { transition: 0.2s ease; }
+        .table tbody tr:hover { background-color: #f8faff; }
+        .college-logo { width: 46px; height: 46px; object-fit: cover; border-radius: 12px; border: 1px solid #e5e7eb; background: #f8f9fa; }
+        .college-name { font-weight: 600; color: #1f2937; }
+        .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+        .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .async-feedback { min-height: 18px; }
+        .async-feedback.text-success { color: #198754 !important; }
+        .async-spinner { position: absolute; right: 12px; top: 50%; transform: translateY(-50%); }
+        .page-link { cursor: pointer; }
         @media (max-width: 768px) {
-            .main-card-header {
-                padding: 16px;
-            }
-
-            .table {
-                min-width: 900px;
-            }
+            .main-card-header { padding: 16px; }
+            .table { min-width: 900px; }
         }
     </style>
-
 </head>
 
 <body>
@@ -699,8 +520,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
                 <div class="mt-3 mt-md-0">
                     <button type="button" class="btn btn-primary px-4" data-bs-toggle="modal" data-bs-target="#addCollegeModal">
-                        <i class="bi bi-plus-lg me-2"></i>
-                        Add College
+                        <i class="bi bi-plus-lg me-2"></i> Add College
                     </button>
                 </div>
             </div>
@@ -781,7 +601,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                     <th>#</th>
                                     <th>College</th>
                                     <th>University</th>
-                                    <th>Slug</th>
                                     <th>Email</th>
                                     <th>Phone</th>
                                     <th>Status</th>
@@ -794,7 +613,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
                                 <?php if ($total === 0): ?>
                                     <tr>
-                                        <td colspan="10" class="text-center text-muted py-4">
+                                        <td colspan="9" class="text-center text-muted py-4">
                                             No colleges yet. Click "Add College" to create one.
                                         </td>
                                     </tr>
@@ -812,12 +631,16 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                             <td>
                                                 <div class="d-flex align-items-center gap-3">
                                                     <img src="<?= $logoSrc ?>" class="college-logo" alt="College Logo">
-                                                    <div class="college-name"><?= htmlspecialchars($c['name']) ?></div>
+                                                    <div>
+                                                        <div class="college-name"><?= htmlspecialchars($c['name']) ?></div>
+                                                        <small class="text-muted d-block" style="font-size: 12px; line-height: 1.2; font-weight: 500;">
+                                                            <?= htmlspecialchars($c['slug']) ?>
+                                                        </small>
+                                                    </div>
                                                 </div>
                                             </td>
 
                                             <td><?= htmlspecialchars($c['university_name'] ?? 'Unknown') ?></td>
-                                            <td><?= htmlspecialchars($c['slug']) ?></td>
                                             <td><?= htmlspecialchars($c['email']) ?></td>
                                             <td><?= htmlspecialchars($c['phone'] ?? '—') ?></td>
 
@@ -855,8 +678,30 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     </div>
                 </div>
 
-                <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center">
-                    <small class="text-muted">Showing <?= $total ?> of <?= $total ?> colleges</small>
+                <!-- Footer with 5, 10, 25 Limit Selector & Compact Pagination -->
+                <div class="card-footer bg-white border-top py-3">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-6 col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted text-nowrap">Show</small>
+                                <select class="form-select form-select-sm w-auto" id="limitSelect" style="font-size: 12px; padding-top: 2px; padding-bottom: 2px;">
+                                    <option value="5" selected>5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <small class="text-muted text-nowrap me-2">entries</small>
+                                <span class="text-muted opacity-50">|</span>
+                                <small class="text-muted ms-2" id="showingCountText">Showing 0 of 0 colleges</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <nav aria-label="Table pagination">
+                                <ul class="pagination pagination-sm mb-0 justify-content-md-end justify-content-center" id="pagination">
+                                    <!-- Dynamic compact pagination controls inject here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -902,11 +747,11 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 <label class="form-label">University</label>
                                 <select class="form-select" name="university_id" required>
                                     <option value="">Choose</option>
-                                    <?php foreach ($universities as $u): ?>
+                                    <?php foreach ($activeUniversities as $u): ?>
                                         <option value="<?= (int) $u['university_id'] ?>"><?= htmlspecialchars($u['name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="invalid-feedback">Select a university.</div>
+                                <div class="invalid-feedback">Select an active university.</div>
                             </div>
 
                             <div class="col-md-6">
@@ -968,7 +813,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         </div>
     </div>
 
-    <!-- ===================== EDIT COLLEGE MODALS (one per row) ===================== -->
+    <!-- ===================== EDIT COLLEGE MODALS ===================== -->
     <?php foreach ($colleges as $c): ?>
         <div class="modal fade" id="editCollegeModal<?= (int) $c['college_id'] ?>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -1007,7 +852,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                 <div class="col-md-6">
                                     <label class="form-label">University</label>
                                     <select class="form-select" name="university_id" required>
-                                        <?php foreach ($universities as $u): ?>
+                                        <?php foreach ($allUniversities as $u): ?>
                                             <option value="<?= (int) $u['university_id'] ?>" <?= (int) $u['university_id'] === (int) $c['university_id'] ? 'selected' : '' ?>>
                                                 <?= htmlspecialchars($u['name']) ?>
                                             </option>
@@ -1093,17 +938,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        layout_change('false');
-        layout_theme_sidebar_change('dark');
-        change_box_container('false');
-        layout_caption_change('true');
-        layout_rtl_change('false');
-        preset_change('preset-1');
-        main_layout_change('vertical');
-    </script>
-
-    <script>
-        // Bootstrap client-side validation styling for both modal forms
         document.querySelectorAll(".needs-validation").forEach(form => {
             form.addEventListener("submit", function(e) {
                 if (!form.checkValidity()) {
@@ -1121,45 +955,118 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             });
         <?php endif; ?>
 
-        // Search & Filter
+        // Search, Filter, Limit & Compact Pagination Engine
         const searchInput = document.getElementById("collegeSearch");
         const statusFilter = document.getElementById("statusFilter");
+        const limitSelect = document.getElementById("limitSelect");
         const rows = document.querySelectorAll("#collegeTable tbody tr");
+        const showingCountText = document.getElementById("showingCountText");
+        const paginationContainer = document.getElementById("pagination");
+
+        let currentPage = 1;
 
         function filterColleges() {
             const searchValue = searchInput.value.toLowerCase();
             const statusValue = statusFilter.value.toLowerCase();
+            const limitValue = limitSelect.value;
 
+            const matchedRows = [];
             rows.forEach(row => {
-                if (!row.querySelector(".status-badge")) return; // skip the "no data" row
+                const badge = row.querySelector(".status-badge");
+                if (!badge) return;
 
                 const rowText = row.innerText.toLowerCase();
-                const status = row.cells[6].innerText.toLowerCase().trim();
+                const status = badge.innerText.toLowerCase().trim();
 
                 const matchesSearch = rowText.includes(searchValue);
                 const matchesStatus = statusValue === "" || status === statusValue;
 
-                row.style.display = matchesSearch && matchesStatus ? "" : "none";
+                if (matchesSearch && matchesStatus) {
+                    matchedRows.push(row);
+                } else {
+                    row.style.display = "none";
+                }
             });
+
+            const totalMatched = matchedRows.length;
+            let pageSize = parseInt(limitValue, 10);
+            if (pageSize <= 0) pageSize = 1;
+
+            const totalPages = Math.ceil(totalMatched / pageSize) || 1;
+
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+
+            matchedRows.forEach((row, idx) => {
+                row.style.display = (idx >= startIdx && idx < endIdx) ? "" : "none";
+            });
+
+            const visibleCount = Math.min(pageSize, totalMatched - startIdx > 0 ? totalMatched - startIdx : 0);
+            showingCountText.textContent = `Showing ${visibleCount} of ${totalMatched} colleges`;
+
+            renderPagination(totalPages);
         }
 
-        searchInput.addEventListener("keyup", filterColleges);
-        statusFilter.addEventListener("change", filterColleges);
+        function renderPagination(totalPages) {
+            paginationContainer.innerHTML = "";
+            if (totalPages <= 1) return;
 
-        // Status Toggle (AJAX, persisted to DB)
+            // 1. PREVIOUS BUTTON
+            if (currentPage > 1) {
+                const prevLi = document.createElement("li");
+                prevLi.className = "page-item";
+                prevLi.innerHTML = `<a class="page-link" aria-label="Previous"><i class="bi bi-chevron-left"></i> Prev</a>`;
+                prevLi.addEventListener("click", () => {
+                    currentPage--;
+                    filterColleges();
+                });
+                paginationContainer.appendChild(prevLi);
+            }
+
+            // 2. CURRENT PAGE NUMBER ONLY
+            const currentLi = document.createElement("li");
+            currentLi.className = "page-item active";
+            currentLi.innerHTML = `<a class="page-link">${currentPage}</a>`;
+            paginationContainer.appendChild(currentLi);
+
+            // 3. NEXT BUTTON
+            if (currentPage < totalPages) {
+                const nextLi = document.createElement("li");
+                nextLi.className = "page-item";
+                nextLi.innerHTML = `<a class="page-link" aria-label="Next">Next <i class="bi bi-chevron-right"></i></a>`;
+                nextLi.addEventListener("click", () => {
+                    currentPage++;
+                    filterColleges();
+                });
+                paginationContainer.appendChild(nextLi);
+            }
+        }
+
+        searchInput.addEventListener("keyup", () => { currentPage = 1; filterColleges(); });
+        statusFilter.addEventListener("change", () => { currentPage = 1; filterColleges(); });
+        limitSelect.addEventListener("change", () => { currentPage = 1; filterColleges(); });
+
+        document.addEventListener("DOMContentLoaded", filterColleges);
+
+        // Status Toggle (AJAX)
         const activeCountBox = document.getElementById("activeCount");
         const inactiveCountBox = document.getElementById("inactiveCount");
 
         function setBadge(row, isActive) {
-            const badge = row.cells[6].querySelector(".status-badge");
-            if (isActive) {
-                badge.textContent = "Active";
-                badge.classList.remove("bg-danger-subtle", "text-danger");
-                badge.classList.add("bg-success-subtle", "text-success");
-            } else {
-                badge.textContent = "Inactive";
-                badge.classList.remove("bg-success-subtle", "text-success");
-                badge.classList.add("bg-danger-subtle", "text-danger");
+            const badge = row.querySelector(".status-badge");
+            if (badge) {
+                if (isActive) {
+                    badge.textContent = "Active";
+                    badge.classList.remove("bg-danger-subtle", "text-danger");
+                    badge.classList.add("bg-success-subtle", "text-success");
+                } else {
+                    badge.textContent = "Inactive";
+                    badge.classList.remove("bg-success-subtle", "text-success");
+                    badge.classList.add("bg-danger-subtle", "text-danger");
+                }
             }
         }
 
@@ -1190,13 +1097,8 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
                 fetch("colleges.php?action=toggle_status", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            id: collegeId,
-                            status: isActive ? "active" : "inactive"
-                        })
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ id: collegeId, status: isActive ? "active" : "inactive" })
                     })
                     .then(res => {
                         if (!res.ok) throw new Error("Request failed");
@@ -1212,9 +1114,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                         filterColleges();
                         alert("Could not update status. Please try again.");
                     })
-                    .finally(() => {
-                        toggle.disabled = false;
-                    });
+                    .finally(() => { toggle.disabled = false; });
             });
         });
 
@@ -1224,7 +1124,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             }
         }
 
-        // ===================== ASYNC UNIQUENESS VALIDATION (slug / email) =====================
+        // Async uniqueness validation
         (function() {
             const DEBOUNCE_MS = 450;
             const timers = new WeakMap();
@@ -1254,7 +1154,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     feedbackEl.textContent = "Checking availability…";
                     feedbackEl.classList.remove("text-success", "text-danger");
                 } else {
-                    // idle
                     input.setCustomValidity("");
                     feedbackEl.textContent = "";
                     feedbackEl.classList.remove("text-success", "text-danger");
@@ -1275,13 +1174,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
                 if (!feedbackEl || !spinner) return;
 
-                if (!value) {
-                    setState(input, feedbackEl, spinner, "idle");
-                    return;
-                }
-
-                // Skip the network round-trip if native constraints already fail
-                if (!input.checkValidity()) {
+                if (!value || !input.checkValidity()) {
                     setState(input, feedbackEl, spinner, "idle");
                     return;
                 }
@@ -1291,29 +1184,15 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 try {
                     const res = await fetch("colleges.php?action=check_unique", {
                         method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify({
-                            field,
-                            value,
-                            id: idField ? idField.value : null
-                        })
+                        headers: { "Content-Type": "application/json" },
+                        body: JSON.stringify({ field, value, id: idField ? idField.value : null })
                     });
 
                     if (!res.ok) throw new Error("Request failed");
                     const data = await res.json();
 
-                    setState(
-                        input,
-                        feedbackEl,
-                        spinner,
-                        data.available ? "valid" : "invalid",
-                        data.message
-                    );
+                    setState(input, feedbackEl, spinner, data.available ? "valid" : "invalid", data.message);
                 } catch {
-                    // Network failure: don't hard-block the user client-side.
-                    // Final server-side validate_college() check on submit is still authoritative.
                     setState(input, feedbackEl, spinner, "idle");
                 }
             }
@@ -1323,7 +1202,6 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 debounce(e.target, () => runCheck(e.target));
             });
 
-            // Gate submission: block if a field is still checking or already known-invalid
             document.addEventListener("submit", function(e) {
                 const form = e.target;
                 const asyncFields = form.querySelectorAll("[data-async-check]");
@@ -1343,6 +1221,16 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 }
             });
         })();
+    </script>
+
+    <script>
+        layout_change('false');
+        layout_theme_sidebar_change('dark');
+        change_box_container('false');
+        layout_caption_change('true');
+        layout_rtl_change('false');
+        preset_change('preset-1');
+        main_layout_change('vertical');
     </script>
 
 </body>
