@@ -2,7 +2,7 @@
 /**
  * all_events.php
  * Single-file Event management: DB connection, validation,
- * create / read / update / delete, status toggle (AJAX), and UI theme matching alluniversity.php.
+ * create / read / update / delete, status toggle (AJAX), limit & compact pagination, and UI theme.
  */
 
 include 'auth_check.php';
@@ -135,13 +135,6 @@ function validate_event(PDO $pdo, array $data): array
             $errors[] = 'Enter a valid event date.';
         } else {
             $eventDateObj = $d;
-
-            // Event date must not be more than 1 year in the future.
-            $maxEventDateObj = new DateTime('today');
-            $maxEventDateObj->modify('+1 year');
-            if ($eventDateObj > $maxEventDateObj) {
-                $errors[] = 'Event date cannot be more than 1 year from today.';
-            }
         }
     }
 
@@ -171,13 +164,10 @@ function validate_event(PDO $pdo, array $data): array
         if (!$dl) {
             $errors[] = 'Enter a valid registration deadline.';
         } elseif ($eventDateObj !== null) {
-            // Deadline must be at least 1 full day before the event date
-            // (i.e. on or before 23:59:59 of the day prior to the event).
-            $deadlineLimit = clone $eventDateObj;
-            $deadlineLimit->modify('-1 day');
-            $deadlineLimit->setTime(23, 59, 59);
-            if ($dl > $deadlineLimit) {
-                $errors[] = 'Registration deadline must be at least 1 day before the event date.';
+            $eventEndOfDay = clone $eventDateObj;
+            $eventEndOfDay->setTime(23, 59, 59);
+            if ($dl > $eventEndOfDay) {
+                $errors[] = 'Registration deadline must be on or before the event date.';
             }
         }
     }
@@ -202,7 +192,7 @@ function validate_event(PDO $pdo, array $data): array
 }
 
 /* =========================================================
-   AJAX: STATUS TOGGLE
+   AJAX HANDLERS
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle_status') {
     header('Content-Type: application/json');
@@ -232,9 +222,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'toggle
     exit;
 }
 
-/* =========================================================
-   AJAX: UNIQUENESS / EXISTENCE CHECK (college_id)
-   ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_college') {
     header('Content-Type: application/json');
 
@@ -263,7 +250,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && ($_GET['action'] ?? '') === 'check_
 }
 
 /* =========================================================
-   DELETE
+   DELETE & POST HANDLERS
    ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete') {
     $id = filter_input(INPUT_GET, 'id', FILTER_VALIDATE_INT);
@@ -286,9 +273,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && ($_GET['action'] ?? '') === 'delete'
     exit;
 }
 
-/* =========================================================
-   CREATE / UPDATE HANDLERS
-   ========================================================= */
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
 
     if ($_POST['form_action'] === 'create') {
@@ -412,21 +396,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     }
 }
 
-// Fetch lists for select dropdown boxes
-$colleges = $pdo->query("
-    SELECT college_id, name 
-    FROM colleges 
-    WHERE status = 'active'
-    ORDER BY name ASC
-")->fetchAll();
-$categories = $pdo->query('SELECT category_id, name FROM categories ORDER BY name ASC')->fetchAll();
-
-$collegeLookup  = array_column($colleges, 'name', 'college_id');
-$categoryLookup = array_column($categories, 'name', 'category_id');
-
 /* =========================================================
-   DATA FOR DISPLAY
+   DATA FETCHING
    ========================================================= */
+$activeColleges   = $pdo->query("SELECT college_id, name FROM colleges WHERE status = 'active' ORDER BY name ASC")->fetchAll();
+$activeCategories = $pdo->query("SELECT category_id, name FROM categories WHERE status = 'active' ORDER BY name ASC")->fetchAll();
+
+$allColleges   = $pdo->query("SELECT college_id, name, status FROM colleges ORDER BY name ASC")->fetchAll();
+$allCategories = $pdo->query("SELECT category_id, name, status FROM categories ORDER BY name ASC")->fetchAll();
+
+$collegeLookup  = array_column($allColleges, 'name', 'college_id');
+$categoryLookup = array_column($allCategories, 'name', 'category_id');
+
 $events = $pdo->query('SELECT * FROM events ORDER BY event_date DESC')->fetchAll();
 $total     = count($events);
 $published = count(array_filter($events, fn($e) => $e['status'] === 'published'));
@@ -436,8 +417,7 @@ $flash = $_SESSION['flash'] ?? null;
 $reopenModal = $_SESSION['reopen_modal'] ?? null;
 unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
-$todayDate    = date('Y-m-d');
-$maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go further than 1 year ahead
+$todayDate = date('Y-m-d');
 ?>
 <!doctype html>
 <html lang="en">
@@ -465,7 +445,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
         .icon-primary { background: #e8edff; color: #4f46e5; }
         .icon-success { background: #e7f8ef; color: #198754; }
         .icon-warning { background: #fff8e6; color: #ffc107; }
-        .main-card { border: 0; border-radius: 16px; }
+        .main-card { border: 0; border-radius: 16px; overflow: hidden; }
         .main-card-header { background: #ffffff; padding: 20px 24px; border-bottom: 1px solid #edf0f5; }
         .search-box { position: relative; }
         .search-box i { position: absolute; left: 14px; top: 50%; transform: translateY(-50%); color: #9ca3af; }
@@ -484,6 +464,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
         .action-option-btn { width: 100%; text-align: left; padding: 12px 16px; border-radius: 10px; border: 0; background: #f8f9fa; font-weight: 500; color: #374151; transition: 0.2s ease; margin-bottom: 8px; display: flex; align-items: center; }
         .action-option-btn:hover { background: #eef2ff; color: #4f46e5; }
         .action-option-btn.delete-option:hover { background: #fdecec; color: #dc3545; }
+        .page-link { cursor: pointer; }
         @media (max-width: 768px) {
             .main-card-header { padding: 16px; }
             .table { min-width: 950px; }
@@ -678,7 +659,6 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                                                 </select>
                                             </td>
                                             <td class="text-end">
-                                                <!-- Three dots trigger button -> Opens Action Menu Popup -->
                                                 <button type="button" class="action-btn" data-bs-toggle="modal" data-bs-target="#actionMenuModal<?= (int)$e['event_id'] ?>" title="Actions">
                                                     <i class="bi bi-three-dots-vertical text-muted"></i>
                                                 </button>
@@ -690,9 +670,33 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                         </table>
                     </div>
                 </div>
-                <div class="card-footer bg-white border-top">
-                    <small class="text-muted">Showing <?= $total ?> events</small>
+
+                <!-- Footer with 5, 10, 25 Limit Selector & Compact Pagination -->
+                <div class="card-footer bg-white border-top py-3">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-6 col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted text-nowrap">Show</small>
+                                <select class="form-select form-select-sm w-auto" id="limitSelect" style="font-size: 12px; padding-top: 2px; padding-bottom: 2px;">
+                                    <option value="5" selected>5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <small class="text-muted text-nowrap me-2">entries</small>
+                                <span class="text-muted opacity-50">|</span>
+                                <small class="text-muted ms-2" id="showingCountText">Showing 0 of 0 events</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <nav aria-label="Table pagination">
+                                <ul class="pagination pagination-sm mb-0 justify-content-md-end justify-content-center" id="pagination">
+                                    <!-- Dynamic compact pagination controls inject here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
+
             </div>
         </div>
     </div>
@@ -700,7 +704,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
     <!-- ===================== MODALS PER ROW ===================== -->
     <?php foreach ($events as $e): ?>
         
-        <!-- 1. POPUP ACTION MENU MODAL -->
+        <!-- POPUP ACTION MENU -->
         <div class="modal fade" id="actionMenuModal<?= (int)$e['event_id'] ?>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-dialog-centered modal-sm">
                 <div class="modal-content border-0 shadow">
@@ -709,17 +713,14 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                         <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                     </div>
                     <div class="modal-body p-3">
-                        <!-- Option 1: View -->
                         <button type="button" class="action-option-btn" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#viewEventModal<?= (int)$e['event_id'] ?>">
                             <i class="bi bi-eye text-info me-3 fs-5"></i> View Details
                         </button>
                         
-                        <!-- Option 2: Edit -->
                         <button type="button" class="action-option-btn" data-bs-dismiss="modal" data-bs-toggle="modal" data-bs-target="#editEventModal<?= (int)$e['event_id'] ?>">
                             <i class="bi bi-pencil text-primary me-3 fs-5"></i> Edit Event
                         </button>
                         
-                        <!-- Option 3: Delete -->
                         <button type="button" class="action-option-btn delete-option text-danger" data-bs-dismiss="modal" onclick="deleteEvent(<?= (int)$e['event_id'] ?>)">
                             <i class="bi bi-trash text-danger me-3 fs-5"></i> Delete Event
                         </button>
@@ -728,7 +729,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
             </div>
         </div>
 
-        <!-- 2. VIEW DETAILS MODAL -->
+        <!-- VIEW DETAILS MODAL -->
         <div class="modal fade" id="viewEventModal<?= (int)$e['event_id'] ?>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content border-0 shadow">
@@ -832,7 +833,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
             </div>
         </div>
 
-        <!-- 3. EDIT EVENT MODAL -->
+        <!-- EDIT EVENT MODAL -->
         <div class="modal fade" id="editEventModal<?= (int)$e['event_id'] ?>" tabindex="-1" aria-hidden="true">
             <div class="modal-dialog modal-lg modal-dialog-centered">
                 <div class="modal-content">
@@ -849,26 +850,21 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                             <div class="row g-3">
                                 <div class="col-md-6">
                                     <label class="form-label">College *</label>
-                                    <div class="position-relative">
-                                        <select class="form-select" name="college_id" required data-async-check="college"
-                                            aria-describedby="collegeAsyncFeedback<?= (int)$e['event_id'] ?>">
-                                            <?php foreach ($colleges as $c): ?>
-                                                <option value="<?= (int)$c['college_id'] ?>" <?= $c['college_id'] == $e['college_id'] ? 'selected' : '' ?>>
-                                                    <?= htmlspecialchars($c['name']) ?>
-                                                </option>
-                                            <?php endforeach; ?>
-                                        </select>
-                                        <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
-                                    </div>
+                                    <select class="form-select" name="college_id" required>
+                                        <?php foreach ($allColleges as $c): ?>
+                                            <option value="<?= (int)$c['college_id'] ?>" <?= $c['college_id'] == $e['college_id'] ? 'selected' : '' ?>>
+                                                <?= htmlspecialchars($c['name']) ?>
+                                            </option>
+                                        <?php endforeach; ?>
+                                    </select>
                                     <div class="invalid-feedback">Please select a college.</div>
-                                    <div class="async-feedback small mt-1" id="collegeAsyncFeedback<?= (int)$e['event_id'] ?>" role="alert" aria-live="polite"></div>
                                 </div>
 
                                 <div class="col-md-6">
                                     <label class="form-label">Category *</label>
                                     <select class="form-select" name="category_id" required>
                                         <option value="">Choose Category</option>
-                                        <?php foreach ($categories as $cat): ?>
+                                        <?php foreach ($allCategories as $cat): ?>
                                             <option value="<?= (int)$cat['category_id'] ?>" <?= $cat['category_id'] == $e['category_id'] ? 'selected' : '' ?>>
                                                 <?= htmlspecialchars($cat['name']) ?>
                                             </option>
@@ -932,8 +928,8 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
 
                                 <div class="col-md-4">
                                     <label class="form-label">Date *</label>
-                                    <input type="date" class="form-control event-date-input" name="event_date" value="<?= htmlspecialchars($e['event_date']) ?>" required max="<?= htmlspecialchars($maxEventDate) ?>">
-                                    <div class="invalid-feedback">Please select a valid date (within the next 1 year).</div>
+                                    <input type="date" class="form-control event-date-input" name="event_date" value="<?= htmlspecialchars($e['event_date']) ?>" required>
+                                    <div class="invalid-feedback">Please select a valid date.</div>
                                 </div>
 
                                 <div class="col-md-4">
@@ -951,8 +947,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                                 <div class="col-md-6">
                                     <label class="form-label">Registration Deadline *</label>
                                     <input type="datetime-local" class="form-control deadline-input" name="registration_deadline" value="<?= !empty($e['registration_deadline']) ? date('Y-m-d\TH:i', strtotime($e['registration_deadline'])) : '' ?>" required>
-                                    <div class="invalid-feedback">Deadline must be at least 1 day before the event date.</div>
-                                    <small class="text-muted">Auto-set to 3 days before the event date. Can be moved up to 1 day before the event.</small>
+                                    <div class="invalid-feedback">Deadline must be on or before the event date.</div>
                                 </div>
 
                                 <div class="col-md-6">
@@ -1005,13 +1000,13 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                                     <select class="form-select" name="college_id" required data-async-check="college"
                                         aria-describedby="collegeAsyncFeedbackAdd">
                                         <option value="">Choose College</option>
-                                        <?php foreach ($colleges as $c): ?>
+                                        <?php foreach ($activeColleges as $c): ?>
                                             <option value="<?= (int)$c['college_id'] ?>"><?= htmlspecialchars($c['name']) ?></option>
                                         <?php endforeach; ?>
                                     </select>
                                     <span class="async-spinner spinner-border spinner-border-sm text-secondary d-none" role="status" aria-hidden="true"></span>
                                 </div>
-                                <div class="invalid-feedback">Please select a college.</div>
+                                <div class="invalid-feedback">Please select an active college.</div>
                                 <div class="async-feedback small mt-1" id="collegeAsyncFeedbackAdd" role="alert" aria-live="polite"></div>
                             </div>
 
@@ -1019,11 +1014,11 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                                 <label class="form-label">Category *</label>
                                 <select class="form-select" name="category_id" required>
                                     <option value="">Choose Category</option>
-                                    <?php foreach ($categories as $cat): ?>
+                                    <?php foreach ($activeCategories as $cat): ?>
                                         <option value="<?= (int)$cat['category_id'] ?>"><?= htmlspecialchars($cat['name']) ?></option>
                                     <?php endforeach; ?>
                                 </select>
-                                <div class="invalid-feedback">Please select a category.</div>
+                                <div class="invalid-feedback">Please select an active category.</div>
                             </div>
 
                             <div class="col-12">
@@ -1079,8 +1074,8 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
 
                             <div class="col-md-4">
                                 <label class="form-label">Date *</label>
-                                <input type="date" class="form-control event-date-input" name="event_date" required min="<?= htmlspecialchars($todayDate) ?>" max="<?= htmlspecialchars($maxEventDate) ?>">
-                                <div class="invalid-feedback">Please select a valid date (within the next 1 year).</div>
+                                <input type="date" class="form-control event-date-input" name="event_date" required min="<?= htmlspecialchars($todayDate) ?>">
+                                <div class="invalid-feedback">Please select a valid date.</div>
                             </div>
 
                             <div class="col-md-4">
@@ -1098,8 +1093,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                             <div class="col-md-6">
                                 <label class="form-label">Registration Deadline *</label>
                                 <input type="datetime-local" class="form-control deadline-input" name="registration_deadline" required>
-                                <div class="invalid-feedback">Deadline must be at least 1 day before the event date.</div>
-                                <small class="text-muted">Auto-set to 3 days before the event date. Can be moved up to 1 day before the event.</small>
+                                <div class="invalid-feedback">Deadline must be on or before the event date.</div>
                             </div>
 
                             <div class="col-md-6">
@@ -1143,9 +1137,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
     <script>
-        // =====================================================================
-        // FIELD-LEVEL VALIDATION ENGINE
-        // =====================================================================
+        // Field-level validation engine
         function isFieldEmpty(field) {
             return field.value === null || field.value.trim() === '';
         }
@@ -1204,7 +1196,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
             });
         });
 
-        // ===================== Team size fields =====================
+        // Team size fields requirement toggling
         function syncTeamFieldRequirement(typeSelect, fieldsSelector) {
             const isTeam = typeSelect.value === 'team';
             const container = typeSelect.closest('.row');
@@ -1239,44 +1231,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
             });
         });
 
-        // ===================== Cross-field validation =====================
-        function pad2(n) {
-            return String(n).padStart(2, '0');
-        }
-
-        function toDatetimeLocalValue(d) {
-            return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}T${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
-        }
-
-        // Registration deadline: auto-set to 3 days before the event date,
-        // and cannot be moved later than 1 day before the event date.
-        function syncDeadlineWithEventDate(dateInput, deadlineInput) {
-            if (!dateInput || !deadlineInput || !dateInput.value) return;
-
-            const eventDate = new Date(dateInput.value + 'T00:00:00');
-            if (isNaN(eventDate.getTime())) return;
-
-            // Max allowed deadline = 1 day before event date, at 23:59
-            const maxDeadline = new Date(eventDate);
-            maxDeadline.setDate(maxDeadline.getDate() - 1);
-            maxDeadline.setHours(23, 59, 0, 0);
-            deadlineInput.max = toDatetimeLocalValue(maxDeadline);
-
-            // Default/auto deadline = 3 days before event date, at 23:59
-            const defaultDeadline = new Date(eventDate);
-            defaultDeadline.setDate(defaultDeadline.getDate() - 3);
-            defaultDeadline.setHours(23, 59, 0, 0);
-            const defaultValue = toDatetimeLocalValue(defaultDeadline);
-
-            // Auto-fill when empty, or clamp down when the current value
-            // no longer fits within the allowed window for the new event date.
-            if (!deadlineInput.value || deadlineInput.value > deadlineInput.max) {
-                deadlineInput.value = defaultValue;
-            }
-
-            validateField(deadlineInput);
-        }
-
+        // Cross-field validations
         document.querySelectorAll('.event-form').forEach(form => {
             const minInput   = form.querySelector('input[name="min_team_size"]');
             const maxInput   = form.querySelector('input[name="max_team_size"]');
@@ -1309,8 +1264,13 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
 
             function checkDeadline() {
                 if (!deadlineInput || !dateInput) return;
-                if (deadlineInput.value && deadlineInput.max && deadlineInput.value > deadlineInput.max) {
-                    deadlineInput.setCustomValidity('Registration deadline must be at least 1 day before the event date.');
+                if (deadlineInput.value && dateInput.value) {
+                    const deadlineDate = deadlineInput.value.split('T')[0];
+                    if (deadlineDate > dateInput.value) {
+                        deadlineInput.setCustomValidity('Registration deadline must be on or before the event date.');
+                    } else {
+                        deadlineInput.setCustomValidity('');
+                    }
                 } else {
                     deadlineInput.setCustomValidity('');
                 }
@@ -1318,23 +1278,9 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
                 validateField(dateInput);
             }
 
-            // Initialize deadline constraints on load (covers Edit modal pre-filled dates).
-            syncDeadlineWithEventDate(dateInput, deadlineInput);
-
-            if (dateInput) {
-                dateInput.addEventListener('input', function() {
-                    syncDeadlineWithEventDate(dateInput, deadlineInput);
-                    checkDeadline();
-                });
-                dateInput.addEventListener('change', function() {
-                    syncDeadlineWithEventDate(dateInput, deadlineInput);
-                    checkDeadline();
-                });
-            }
-
             [minInput, maxInput].forEach(el => el && el.addEventListener('input', checkTeamSizes));
             [startInput, endInput].forEach(el => el && el.addEventListener('input', checkTimes));
-            if (deadlineInput) deadlineInput.addEventListener('input', checkDeadline);
+            [deadlineInput, dateInput].forEach(el => el && el.addEventListener('input', checkDeadline));
         });
 
         <?php if ($reopenModal): ?>
@@ -1344,35 +1290,117 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
             });
         <?php endif; ?>
 
-        // Search & Multi-Filter Logic Engine
+        // Search, Multi-Filter, Limit & Compact Pagination Engine
         const searchInput = document.getElementById("searchEvent");
         const statusFilter = document.getElementById("statusFilter");
         const typeFilter = document.getElementById("typeFilter");
+        const limitSelect = document.getElementById("limitSelect");
         const rows = document.querySelectorAll("#eventTable tbody tr");
+        const showingCountText = document.getElementById("showingCountText");
+        const paginationContainer = document.getElementById("pagination");
+
+        let currentPage = 1;
 
         function filterEvents() {
             const searchVal = searchInput.value.toLowerCase();
             const statusVal = statusFilter.value.toLowerCase();
             const typeVal = typeFilter.value.toLowerCase();
+            const limitValue = limitSelect.value;
 
+            // 1. Filter matching rows
+            const matchedRows = [];
             rows.forEach(row => {
-                if (!row.querySelector(".status-badge")) return;
+                const badge = row.querySelector(".status-badge");
+                if (!badge) return;
 
                 const fullText = row.innerText.toLowerCase();
-                const currentStatus = row.querySelector(".status-badge").innerText.toLowerCase().trim();
-                const currentType = row.dataset.type.toLowerCase().trim();
+                const currentStatus = badge.innerText.toLowerCase().trim();
+                const currentType = row.dataset.type ? row.dataset.type.toLowerCase().trim() : '';
 
                 const matchesSearch = fullText.includes(searchVal);
                 const matchesStatus = statusVal === "" || currentStatus === statusVal;
                 const matchesType = typeVal === "" || currentType === typeVal;
 
-                row.style.display = (matchesSearch && matchesStatus && matchesType) ? "" : "none";
+                if (matchesSearch && matchesStatus && matchesType) {
+                    matchedRows.push(row);
+                } else {
+                    row.style.display = "none";
+                }
             });
+
+            const totalMatched = matchedRows.length;
+            let pageSize = parseInt(limitValue, 10);
+            if (pageSize <= 0) pageSize = 1;
+
+            const totalPages = Math.ceil(totalMatched / pageSize) || 1;
+
+            // Clamp current page to valid range
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+
+            // 2. Render visible page subset
+            matchedRows.forEach((row, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            // 3. Update counter text
+            const visibleCount = Math.min(pageSize, totalMatched - startIdx > 0 ? totalMatched - startIdx : 0);
+            showingCountText.textContent = `Showing ${visibleCount} of ${totalMatched} events`;
+
+            // 4. Build Compact Pagination Controls
+            renderPagination(totalPages);
         }
 
-        searchInput.addEventListener("keyup", filterEvents);
-        statusFilter.addEventListener("change", filterEvents);
-        typeFilter.addEventListener("change", filterEvents);
+        function renderPagination(totalPages) {
+            paginationContainer.innerHTML = "";
+
+            // Hide pagination completely if there's only 1 page or no records
+            if (totalPages <= 1) return;
+
+            // 1. PREVIOUS BUTTON (Only renders/displays if NOT on Page 1)
+            if (currentPage > 1) {
+                const prevLi = document.createElement("li");
+                prevLi.className = "page-item";
+                prevLi.innerHTML = `<a class="page-link" aria-label="Previous"><i class="bi bi-chevron-left"></i> Prev</a>`;
+                prevLi.addEventListener("click", () => {
+                    currentPage--;
+                    filterEvents();
+                });
+                paginationContainer.appendChild(prevLi);
+            }
+
+            // 2. CURRENT PAGE NUMBER ONLY
+            const currentLi = document.createElement("li");
+            currentLi.className = "page-item active";
+            currentLi.innerHTML = `<a class="page-link">${currentPage}</a>`;
+            paginationContainer.appendChild(currentLi);
+
+            // 3. NEXT BUTTON (Only renders/displays if NOT on the last page)
+            if (currentPage < totalPages) {
+                const nextLi = document.createElement("li");
+                nextLi.className = "page-item";
+                nextLi.innerHTML = `<a class="page-link" aria-label="Next">Next <i class="bi bi-chevron-right"></i></a>`;
+                nextLi.addEventListener("click", () => {
+                    currentPage++;
+                    filterEvents();
+                });
+                paginationContainer.appendChild(nextLi);
+            }
+        }
+
+        searchInput.addEventListener("keyup", () => { currentPage = 1; filterEvents(); });
+        statusFilter.addEventListener("change", () => { currentPage = 1; filterEvents(); });
+        typeFilter.addEventListener("change", () => { currentPage = 1; filterEvents(); });
+        limitSelect.addEventListener("change", () => { currentPage = 1; filterEvents(); });
+
+        document.addEventListener("DOMContentLoaded", filterEvents);
 
         // Live AJAX Status Changes & Metrics Updates
         const publishedCountBox = document.getElementById("publishedCount");
@@ -1391,6 +1419,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
 
         function updateBadgeColor(row, status) {
             const badge = row.querySelector(".status-badge");
+            if (!badge) return;
             badge.textContent = status;
             badge.className = "badge status-badge";
             
@@ -1450,7 +1479,7 @@ $maxEventDate = date('Y-m-d', strtotime('+1 year')); // Calendar cannot go furth
             }
         }
 
-        // ===================== ASYNC COLLEGE EXISTENCE CHECK =====================
+        // Async college existence check
         (function() {
             const DEBOUNCE_MS = 350;
             const timers = new WeakMap();
