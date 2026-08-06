@@ -2,7 +2,7 @@
 /**
  * allteams.php
  * Single-file Team Management: DB Connection, CRUD with Multi-Member Creation,
- * member management modal, leader update fix, event filtering, search, and matching UI.
+ * member management modal, leader update fix, event filtering, search, limit & compact pagination, and matching UI.
  */
 
 include 'auth_check.php';
@@ -66,13 +66,11 @@ function validate_team(PDO $pdo, array $data, ?int $excludeId = null): array
         } elseif ($evt['event_type'] !== 'team') {
             $errors[] = 'Selected event is a solo event. Teams can only be created for team events.';
         } else {
-            // FIX: If updating an existing team, fetch existing count from team_members DB table
             if ($excludeId !== null) {
                 $countStmt = $pdo->prepare('SELECT COUNT(*) FROM team_members WHERE team_id = :tid');
                 $countStmt->execute(['tid' => $excludeId]);
                 $existingMemberCount = (int)$countStmt->fetchColumn();
 
-                // If new leader is not in existing members list yet, add 1 to count
                 $chkLeader = $pdo->prepare('SELECT 1 FROM team_members WHERE team_id = :tid AND student_id = :sid');
                 $chkLeader->execute(['tid' => $excludeId, 'sid' => $leaderId]);
                 if (!$chkLeader->fetch()) {
@@ -81,7 +79,6 @@ function validate_team(PDO $pdo, array $data, ?int $excludeId = null): array
 
                 $totalMembers = $existingMemberCount;
             } else {
-                // Creating new team: count leader + selected members
                 $totalMembers = count(array_unique(array_merge([$leaderId], $memberIds)));
             }
 
@@ -305,7 +302,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
                     'id'        => $id,
                 ]);
 
-                // Automatically ensure the new leader exists in the team_members table
                 $stmtMember = $pdo->prepare('INSERT IGNORE INTO team_members (team_id, student_id) VALUES (:tid, :sid)');
                 $stmtMember->execute(['tid' => $id, 'sid' => $newLeaderId]);
 
@@ -396,6 +392,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         .table tbody tr:hover { background-color: #f8faff; }
         .team-name { font-weight: 600; color: #1f2937; }
         .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
+        .page-link { cursor: pointer; }
         @media (max-width: 768px) {
             .main-card-header { padding: 16px; }
             .table { min-width: 900px; }
@@ -430,7 +427,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     <h4 class="page-title mb-1">All Teams</h4>
                     <p class="page-subtitle mb-3">Manage teams registered on the Evenza platform</p>
                     <ul class="custom-breadcrumb">
-                        <li><a href="Index.php">Home</a></li>
+                        <li><a href="Dashboard.php">Home</a></li>
                         <li>Team Management</li>
                         <li>All Teams</li>
                     </ul>
@@ -586,8 +583,30 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     </div>
                 </div>
 
-                <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center">
-                    <small class="text-muted">Showing <?= $total ?> of <?= $total ?> teams</small>
+                <!-- Footer with 5, 10, 25 Limit Selector & Compact Pagination -->
+                <div class="card-footer bg-white border-top py-3">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-6 col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted text-nowrap">Show</small>
+                                <select class="form-select form-select-sm w-auto" id="limitSelect" style="font-size: 12px; padding-top: 2px; padding-bottom: 2px;">
+                                    <option value="5" selected>5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <small class="text-muted text-nowrap me-2">entries</small>
+                                <span class="text-muted opacity-50">|</span>
+                                <small class="text-muted ms-2" id="showingCountText">Showing 0 of 0 teams</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <nav aria-label="Table pagination">
+                                <ul class="pagination pagination-sm mb-0 justify-content-md-end justify-content-center" id="pagination">
+                                    <!-- Dynamic compact pagination controls inject here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -873,24 +892,111 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             });
         <?php endif; ?>
 
+        // Search, Filter, Limit & Compact Pagination Engine
         const searchInput = document.getElementById("searchTeam");
         const eventFilter = document.getElementById("eventFilter");
+        const limitSelect = document.getElementById("limitSelect");
         const rows = document.querySelectorAll("#teamTable tbody tr");
+        const showingCountText = document.getElementById("showingCountText");
+        const paginationContainer = document.getElementById("pagination");
+
+        let currentPage = 1;
 
         function filterTeams() {
             const searchValue = searchInput.value.toLowerCase();
             const eventValue = eventFilter.value.toLowerCase();
+            const limitValue = limitSelect.value;
 
+            // 1. Filter matching rows
+            const matchedRows = [];
             rows.forEach(row => {
                 if (row.cells.length < 8) return;
+
                 const rowText = row.innerText.toLowerCase();
                 const eventText = row.cells[3].innerText.toLowerCase().trim();
-                row.style.display = (rowText.includes(searchValue) && (eventValue === "" || eventText === eventValue)) ? "" : "none";
+
+                const matchesSearch = rowText.includes(searchValue);
+                const matchesEvent = eventValue === "" || eventText === eventValue;
+
+                if (matchesSearch && matchesEvent) {
+                    matchedRows.push(row);
+                } else {
+                    row.style.display = "none";
+                }
             });
+
+            const totalMatched = matchedRows.length;
+            let pageSize = parseInt(limitValue, 10);
+            if (pageSize <= 0) pageSize = 1;
+
+            const totalPages = Math.ceil(totalMatched / pageSize) || 1;
+
+            // Clamp current page to valid range
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+
+            // 2. Render visible page subset
+            matchedRows.forEach((row, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            // 3. Update counter text
+            const visibleCount = Math.min(pageSize, totalMatched - startIdx > 0 ? totalMatched - startIdx : 0);
+            showingCountText.textContent = `Showing ${visibleCount} of ${totalMatched} teams`;
+
+            // 4. Build Compact Pagination Controls
+            renderPagination(totalPages);
         }
 
-        searchInput.addEventListener("keyup", filterTeams);
-        eventFilter.addEventListener("change", filterTeams);
+        function renderPagination(totalPages) {
+            paginationContainer.innerHTML = "";
+
+            // Hide pagination completely if there's only 1 page or no records
+            if (totalPages <= 1) return;
+
+            // 1. PREVIOUS BUTTON (Only renders/displays if NOT on Page 1)
+            if (currentPage > 1) {
+                const prevLi = document.createElement("li");
+                prevLi.className = "page-item";
+                prevLi.innerHTML = `<a class="page-link" aria-label="Previous"><i class="bi bi-chevron-left"></i> Prev</a>`;
+                prevLi.addEventListener("click", () => {
+                    currentPage--;
+                    filterTeams();
+                });
+                paginationContainer.appendChild(prevLi);
+            }
+
+            // 2. CURRENT PAGE NUMBER ONLY
+            const currentLi = document.createElement("li");
+            currentLi.className = "page-item active";
+            currentLi.innerHTML = `<a class="page-link">${currentPage}</a>`;
+            paginationContainer.appendChild(currentLi);
+
+            // 3. NEXT BUTTON (Only renders/displays if NOT on the last page)
+            if (currentPage < totalPages) {
+                const nextLi = document.createElement("li");
+                nextLi.className = "page-item";
+                nextLi.innerHTML = `<a class="page-link" aria-label="Next">Next <i class="bi bi-chevron-right"></i></a>`;
+                nextLi.addEventListener("click", () => {
+                    currentPage++;
+                    filterTeams();
+                });
+                paginationContainer.appendChild(nextLi);
+            }
+        }
+
+        searchInput.addEventListener("keyup", () => { currentPage = 1; filterTeams(); });
+        eventFilter.addEventListener("change", () => { currentPage = 1; filterTeams(); });
+        limitSelect.addEventListener("change", () => { currentPage = 1; filterTeams(); });
+
+        document.addEventListener("DOMContentLoaded", filterTeams);
 
         function deleteTeam(id) {
             if (confirm("Are you sure you want to delete this team?")) {
