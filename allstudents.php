@@ -4,7 +4,7 @@
  * allstudents.php
  * Single-file Student management: DB connection, validation,
  * create / read / update / delete, account-status toggle (AJAX),
- * async uniqueness checks (AJAX), and UI.
+ * async uniqueness checks (AJAX), limit & pagination, and UI.
  *
  * Assumes a `students` table:
  *   student_id, college_id, enrollment_no, name, email, password, phone,
@@ -429,6 +429,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['form_action'])) {
     }
 }
 
+/* =========================================================
+   DATA FOR DISPLAY
+   ========================================================= */
 $students = $pdo->query('SELECT s.*, c.name AS college_name FROM students s LEFT JOIN colleges c ON c.college_id = s.college_id ORDER BY s.created_at DESC')->fetchAll();
 $colleges = $pdo->query("
     SELECT college_id, name 
@@ -487,6 +490,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
         .async-feedback { min-height: 18px; font-size: 12px; }
         .async-spinner { position: absolute; right: 10px; top: calc(50% - 8px); }
+        .page-link { cursor: pointer; }
         @media (max-width: 768px) {
             .main-card-header { padding: 16px; }
             .table { min-width: 1100px; }
@@ -510,7 +514,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         <div class="pc-content">
 
             <?php if ($flash): ?>
-                <div class="alert alert-<?= htmlspecialchars($flash['type']) ?> alert-dismissible fade show" role="alert">
+                <div class="alert alert-<?= htmlspecialchars($flash['type']) ?> alert-dismissible fade show mb-4" role="alert">
                     <?= htmlspecialchars($flash['message']) ?>
                     <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
                 </div>
@@ -651,7 +655,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                                     <div>
                                                         <div class="student-name"><?= htmlspecialchars($s['name']) ?></div>
                                                         <?php if (!empty($s['enrollment_no'])): ?>
-                                                            <small class="text-muted"><?= htmlspecialchars($s['enrollment_no']) ?></small>
+                                                            <small class="text-muted d-block" style="font-size: 12px; line-height: 1.2; font-weight: 500;"><?= htmlspecialchars($s['enrollment_no']) ?></small>
                                                         <?php endif; ?>
                                                     </div>
                                                 </div>
@@ -701,8 +705,30 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                     </div>
                 </div>
 
-                <div class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center">
-                    <small class="text-muted">Showing <?= $total ?> of <?= $total ?> students</small>
+                <!-- Footer with 5, 10, 25 Limit Selector & Compact Pagination -->
+                <div class="card-footer bg-white border-top py-3">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-6 col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted text-nowrap">Show</small>
+                                <select class="form-select form-select-sm w-auto" id="limitSelect" style="font-size: 12px; padding-top: 2px; padding-bottom: 2px;">
+                                    <option value="5" selected>5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <small class="text-muted text-nowrap me-2">entries</small>
+                                <span class="text-muted opacity-50">|</span>
+                                <small class="text-muted ms-2" id="showingCountText">Showing 0 of 0 students</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <nav aria-label="Table pagination">
+                                <ul class="pagination pagination-sm mb-0 justify-content-md-end justify-content-center" id="pagination">
+                                    <!-- Dynamic compact pagination controls inject here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -994,15 +1020,23 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             });
         <?php endif; ?>
 
-        // Search & Filter
+        // Search, Status Filter, Record Limit & Compact Pagination Engine
         const searchInput = document.getElementById("searchStudent");
         const statusFilter = document.getElementById("statusFilter");
+        const limitSelect = document.getElementById("limitSelect");
         const rows = document.querySelectorAll("#studentTable tbody tr");
+        const showingCountText = document.getElementById("showingCountText");
+        const paginationContainer = document.getElementById("pagination");
+
+        let currentPage = 1;
 
         function filterStudents() {
             const searchValue = searchInput.value.toLowerCase();
             const statusValue = statusFilter.value.toLowerCase();
+            const limitValue = limitSelect.value;
 
+            // 1. Filter matching rows
+            const matchedRows = [];
             rows.forEach(row => {
                 const badge = row.querySelector(".status-badge:not(.verification-badge)");
                 if (!badge) return;
@@ -1013,12 +1047,85 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                 const matchesSearch = rowText.includes(searchValue);
                 const matchesStatus = statusValue === "" || status === statusValue;
 
-                row.style.display = matchesSearch && matchesStatus ? "" : "none";
+                if (matchesSearch && matchesStatus) {
+                    matchedRows.push(row);
+                } else {
+                    row.style.display = "none";
+                }
             });
+
+            const totalMatched = matchedRows.length;
+            let pageSize = parseInt(limitValue, 10);
+            if (pageSize <= 0) pageSize = 1;
+
+            const totalPages = Math.ceil(totalMatched / pageSize) || 1;
+
+            // Clamp current page to valid range
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+            const endIdx = startIdx + pageSize;
+
+            // 2. Render visible page subset
+            matchedRows.forEach((row, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            // 3. Update counter text
+            const visibleCount = Math.min(pageSize, totalMatched - startIdx > 0 ? totalMatched - startIdx : 0);
+            showingCountText.textContent = `Showing ${visibleCount} of ${totalMatched} students`;
+
+            // 4. Build Compact Pagination Controls
+            renderPagination(totalPages);
         }
 
-        searchInput.addEventListener("keyup", filterStudents);
-        statusFilter.addEventListener("change", filterStudents);
+        function renderPagination(totalPages) {
+            paginationContainer.innerHTML = "";
+
+            // Hide pagination completely if there's only 1 page or no records
+            if (totalPages <= 1) return;
+
+            // 1. PREVIOUS BUTTON (Only renders/displays if NOT on Page 1)
+            if (currentPage > 1) {
+                const prevLi = document.createElement("li");
+                prevLi.className = "page-item";
+                prevLi.innerHTML = `<a class="page-link" aria-label="Previous"><i class="bi bi-chevron-left"></i> Prev</a>`;
+                prevLi.addEventListener("click", () => {
+                    currentPage--;
+                    filterStudents();
+                });
+                paginationContainer.appendChild(prevLi);
+            }
+
+            // 2. CURRENT PAGE NUMBER ONLY
+            const currentLi = document.createElement("li");
+            currentLi.className = "page-item active";
+            currentLi.innerHTML = `<a class="page-link">${currentPage}</a>`;
+            paginationContainer.appendChild(currentLi);
+
+            // 3. NEXT BUTTON (Only renders/displays if NOT on the last page)
+            if (currentPage < totalPages) {
+                const nextLi = document.createElement("li");
+                nextLi.className = "page-item";
+                nextLi.innerHTML = `<a class="page-link" aria-label="Next">Next <i class="bi bi-chevron-right"></i></a>`;
+                nextLi.addEventListener("click", () => {
+                    currentPage++;
+                    filterStudents();
+                });
+                paginationContainer.appendChild(nextLi);
+            }
+        }
+
+        searchInput.addEventListener("keyup", () => { currentPage = 1; filterStudents(); });
+        statusFilter.addEventListener("change", () => { currentPage = 1; filterStudents(); });
+        limitSelect.addEventListener("change", () => { currentPage = 1; filterStudents(); });
+
+        document.addEventListener("DOMContentLoaded", filterStudents);
 
         // Status Toggle (AJAX)
         const activeCountBox = document.getElementById("activeCount");
@@ -1026,14 +1133,16 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
         function setBadge(row, isActive) {
             const badge = row.querySelector(".status-badge:not(.verification-badge)");
-            if (isActive) {
-                badge.textContent = "Active";
-                badge.classList.remove("bg-danger-subtle", "text-danger");
-                badge.classList.add("bg-success-subtle", "text-success");
-            } else {
-                badge.textContent = "Inactive";
-                badge.classList.remove("bg-success-subtle", "text-success");
-                badge.classList.add("bg-danger-subtle", "text-danger");
+            if (badge) {
+                if (isActive) {
+                    badge.textContent = "Active";
+                    badge.classList.remove("bg-danger-subtle", "text-danger");
+                    badge.classList.add("bg-success-subtle", "text-success");
+                } else {
+                    badge.textContent = "Inactive";
+                    badge.classList.remove("bg-success-subtle", "text-success");
+                    badge.classList.add("bg-danger-subtle", "text-danger");
+                }
             }
         }
 
