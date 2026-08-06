@@ -40,7 +40,6 @@ $LOGO_WEB_PATH = 'assets/images/universities/';
 
 /* =========================================================
    VALIDATION
-   Same validation style as Colleges.php
    ========================================================= */
 
 function validate_university(
@@ -195,8 +194,6 @@ function validate_university(
 
 /* =========================================================
    LOGO UPLOAD
-   JPG / PNG
-   MAXIMUM 2MB
    ========================================================= */
 
 function handle_logo_upload(
@@ -821,6 +818,10 @@ unset(
             border-radius: 8px;
         }
 
+        .page-link {
+            cursor: pointer;
+        }
+
         @media (max-width: 768px) {
             .main-card-header {
                 padding: 16px;
@@ -1261,19 +1262,30 @@ unset(
 
                 </div>
 
-                <div
-                    class="card-footer bg-white border-top d-flex flex-wrap justify-content-between align-items-center">
-
-                    <small class="text-muted">
-
-                        Showing
-                        <?= $total ?>
-                        of
-                        <?= $total ?>
-                        universities
-
-                    </small>
-
+                <!-- Footer with 5, 10, 25 Limit Selector & Compact Pagination -->
+                <div class="card-footer bg-white border-top py-3">
+                    <div class="row align-items-center g-3">
+                        <div class="col-md-6 col-12">
+                            <div class="d-flex align-items-center gap-2">
+                                <small class="text-muted text-nowrap">Show</small>
+                                <select class="form-select form-select-sm w-auto" id="limitSelect" style="font-size: 12px; padding-top: 2px; padding-bottom: 2px;">
+                                    <option value="5" selected>5</option>
+                                    <option value="10">10</option>
+                                    <option value="25">25</option>
+                                </select>
+                                <small class="text-muted text-nowrap me-2">entries</small>
+                                <span class="text-muted opacity-50">|</span>
+                                <small class="text-muted ms-2" id="showingCountText">Showing 0 of 0 universities</small>
+                            </div>
+                        </div>
+                        <div class="col-md-6 col-12">
+                            <nav aria-label="Table pagination">
+                                <ul class="pagination pagination-sm mb-0 justify-content-md-end justify-content-center" id="pagination">
+                                    <!-- Dynamic compact pagination controls inject here -->
+                                </ul>
+                            </nav>
+                        </div>
+                    </div>
                 </div>
 
             </div>
@@ -1823,7 +1835,7 @@ unset(
         <?php endif; ?>
     </script>
 
-    <!-- Search and Filter -->
+    <!-- Search, Filter, Limit & Compact Pagination Engine -->
 
     <script>
         const searchInput =
@@ -1832,10 +1844,21 @@ unset(
         const statusFilter =
             document.getElementById("statusFilter");
 
+        const limitSelect =
+            document.getElementById("limitSelect");
+
         const rows =
             document.querySelectorAll(
                 "#universityTable tbody tr"
             );
+
+        const showingCountText =
+            document.getElementById("showingCountText");
+
+        const paginationContainer =
+            document.getElementById("pagination");
+
+        let currentPage = 1;
 
         function filterUniversities() {
             const searchValue =
@@ -1844,21 +1867,23 @@ unset(
             const statusValue =
                 statusFilter.value.toLowerCase();
 
+            const limitValue =
+                limitSelect.value;
+
+            // 1. Filter matching rows
+            const matchedRows = [];
+
             rows.forEach(row => {
-                if (
-                    !row.querySelector(
-                        ".status-badge"
-                    )
-                ) {
-                    return;
-                }
+                const badge =
+                    row.querySelector(".status-badge");
+
+                if (!badge) return; // skip empty state row
 
                 const rowText =
                     row.innerText.toLowerCase();
 
                 const status =
-                    row.cells[5]
-                        .innerText
+                    badge.innerText
                         .toLowerCase()
                         .trim();
 
@@ -1869,20 +1894,109 @@ unset(
                     statusValue === "" ||
                     status === statusValue;
 
-                row.style.display =
-                    matchesSearch && matchesStatus
-                        ? ""
-                        : "none";
+                if (matchesSearch && matchesStatus) {
+                    matchedRows.push(row);
+                } else {
+                    row.style.display = "none";
+                }
             });
+
+            const totalMatched = matchedRows.length;
+
+            let pageSize = parseInt(limitValue, 10);
+            if (pageSize <= 0) pageSize = 1;
+
+            const totalPages =
+                Math.ceil(totalMatched / pageSize) || 1;
+
+            // Clamp current page to valid range
+            if (currentPage > totalPages) currentPage = totalPages;
+            if (currentPage < 1) currentPage = 1;
+
+            const startIdx = (currentPage - 1) * pageSize;
+
+            const endIdx = startIdx + pageSize;
+
+            // 2. Render visible page subset
+            matchedRows.forEach((row, idx) => {
+                if (idx >= startIdx && idx < endIdx) {
+                    row.style.display = "";
+                } else {
+                    row.style.display = "none";
+                }
+            });
+
+            // 3. Update counter text
+            const visibleCount =
+                Math.min(
+                    pageSize,
+                    totalMatched - startIdx > 0
+                        ? totalMatched - startIdx
+                        : 0
+                );
+
+            showingCountText.textContent =
+                `Showing ${visibleCount} of ${totalMatched} universities`;
+
+            // 4. Build Compact Pagination Controls
+            renderPagination(totalPages);
         }
 
-        searchInput.addEventListener(
-            "keyup",
-            filterUniversities
-        );
+        function renderPagination(totalPages) {
+            paginationContainer.innerHTML = "";
 
-        statusFilter.addEventListener(
-            "change",
+            // Hide pagination completely if there's only 1 page or no records
+            if (totalPages <= 1) return;
+
+            // 1. PREVIOUS BUTTON (Only renders/displays if NOT on Page 1)
+            if (currentPage > 1) {
+                const prevLi = document.createElement("li");
+                prevLi.className = "page-item";
+                prevLi.innerHTML = `<a class="page-link" aria-label="Previous"><i class="bi bi-chevron-left"></i> Prev</a>`;
+                prevLi.addEventListener("click", () => {
+                    currentPage--;
+                    filterUniversities();
+                });
+                paginationContainer.appendChild(prevLi);
+            }
+
+            // 2. CURRENT PAGE NUMBER (Only displays the current active page)
+            const currentLi = document.createElement("li");
+            currentLi.className = "page-item active";
+            currentLi.innerHTML = `<a class="page-link">${currentPage}</a>`;
+            paginationContainer.appendChild(currentLi);
+
+            // 3. NEXT BUTTON (Only renders/displays if NOT on the last page)
+            if (currentPage < totalPages) {
+                const nextLi = document.createElement("li");
+                nextLi.className = "page-item";
+                nextLi.innerHTML = `<a class="page-link" aria-label="Next">Next <i class="bi bi-chevron-right"></i></a>`;
+                nextLi.addEventListener("click", () => {
+                    currentPage++;
+                    filterUniversities();
+                });
+                paginationContainer.appendChild(nextLi);
+            }
+        }
+
+        searchInput.addEventListener("keyup", () => {
+            currentPage = 1;
+            filterUniversities();
+        });
+
+        statusFilter.addEventListener("change", () => {
+            currentPage = 1;
+            filterUniversities();
+        });
+
+        limitSelect.addEventListener("change", () => {
+            currentPage = 1;
+            filterUniversities();
+        });
+
+        // Initial Filter Execution
+        document.addEventListener(
+            "DOMContentLoaded",
             filterUniversities
         );
     </script>
@@ -1898,33 +2012,34 @@ unset(
 
         function setBadge(row, isActive) {
             const badge =
-                row.cells[5]
-                    .querySelector(".status-badge");
+                row.querySelector(".status-badge");
 
-            if (isActive) {
-                badge.textContent = "Active";
+            if (badge) {
+                if (isActive) {
+                    badge.textContent = "Active";
 
-                badge.classList.remove(
-                    "bg-danger-subtle",
-                    "text-danger"
-                );
+                    badge.classList.remove(
+                        "bg-danger-subtle",
+                        "text-danger"
+                    );
 
-                badge.classList.add(
-                    "bg-success-subtle",
-                    "text-success"
-                );
-            } else {
-                badge.textContent = "Inactive";
+                    badge.classList.add(
+                        "bg-success-subtle",
+                        "text-success"
+                    );
+                } else {
+                    badge.textContent = "Inactive";
 
-                badge.classList.remove(
-                    "bg-success-subtle",
-                    "text-success"
-                );
+                    badge.classList.remove(
+                        "bg-success-subtle",
+                        "text-success"
+                    );
 
-                badge.classList.add(
-                    "bg-danger-subtle",
-                    "text-danger"
-                );
+                    badge.classList.add(
+                        "bg-danger-subtle",
+                        "text-danger"
+                    );
+                }
             }
         }
 
