@@ -45,8 +45,8 @@ try {
 
 $IDCARD_DIR      = __DIR__ . '/assets/images/students/idcards';
 $IDCARD_WEB_PATH = 'assets/images/students/idcards/';
-$PHOTO_DIR       = __DIR__ . '/assets/images/students/profiles';
-$PHOTO_WEB_PATH  = 'assets/images/students/profiles/';
+$PHOTO_DIR       = __DIR__ . '/assets/images/user';
+$PHOTO_WEB_PATH  = 'assets/images/user/';
 
 /* =========================================================
    VALIDATION HELPERS
@@ -484,13 +484,32 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
         .table tbody td { padding: 15px; vertical-align: middle; color: #374151; }
         .table tbody tr { transition: 0.2s ease; }
         .table tbody tr:hover { background-color: #f8faff; }
-        .student-logo { width: 46px; height: 46px; object-fit: cover; border-radius: 12px; border: 1px solid #e5e7eb; background: #f8f9fa; }
+        .student-logo { width: 46px; height: 46px; object-fit: cover; border-radius: 12px; border: 1px solid #e5e7eb; background: #f8f9fa; flex-shrink: 0; }
         .student-name { font-weight: 600; color: #1f2937; }
         .status-badge { padding: 6px 12px; border-radius: 20px; font-size: 12px; font-weight: 600; }
         .action-btn { width: 34px; height: 34px; display: inline-flex; align-items: center; justify-content: center; border-radius: 8px; }
         .async-feedback { min-height: 18px; font-size: 12px; }
         .async-spinner { position: absolute; right: 10px; top: calc(50% - 8px); }
         .page-link { cursor: pointer; }
+        
+        /* Fix for cell overlapping between student name & college */
+        #studentTable {
+            table-layout: auto;
+            width: 100%;
+        }
+        #studentTable th, 
+        #studentTable td {
+            white-space: nowrap;
+        }
+        #studentTable th:nth-child(2),
+        #studentTable td:nth-child(2) {
+            min-width: 200px;
+        }
+        #studentTable th:nth-child(3),
+        #studentTable td:nth-child(3) {
+            min-width: 220px;
+        }
+
         @media (max-width: 768px) {
             .main-card-header { padding: 16px; }
             .table { min-width: 1100px; }
@@ -635,6 +654,10 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                         </td>
                                     </tr>
                                 <?php else: ?>
+                                    <?php 
+                                    $maleAvatars   = ['avatar-2.jpg', 'avatar-4.jpg', 'avatar-7.jpg', 'avatar-9.jpg'];
+                                    $femaleAvatars = ['avatar-1.jpg', 'avatar-3.jpg', 'avatar-5.jpg', 'avatar-6.jpg', 'avatar-8.jpg', 'avatar-10.jpg'];
+                                    ?>
                                     <?php foreach ($students as $i => $s): ?>
                                         <?php
                                             $isActive = $s['account_status'] === 'active';
@@ -642,9 +665,19 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
                                             $verifyClass = $verify === 'verified'
                                                 ? 'bg-success-subtle text-success'
                                                 : ($verify === 'rejected' ? 'bg-danger-subtle text-danger' : 'bg-warning-subtle text-warning');
-                                            $photoSrc = !empty($s['profile_photo'])
-                                                ? $PHOTO_WEB_PATH . htmlspecialchars($s['profile_photo'])
-                                                : $PHOTO_WEB_PATH . 'placeholder.png';
+                                            
+                                            $photoName = $s['profile_photo'] ?? '';
+                                            
+                                            // Dynamic fallback logic matching assets/images/user/ .jpg avatar files
+                                            if (empty($photoName) || str_contains($photoName, 'avatar.png') || str_contains($photoName, 'placeholder')) {
+                                                if (strtolower($s['gender']) === 'female') {
+                                                    $photoName = $femaleAvatars[(int) $s['student_id'] % count($femaleAvatars)];
+                                                } else {
+                                                    $photoName = $maleAvatars[(int) $s['student_id'] % count($maleAvatars)];
+                                                }
+                                            }
+                                            
+                                            $photoSrc = $PHOTO_WEB_PATH . htmlspecialchars($photoName);
                                         ?>
                                         <tr>
                                             <td><?= $i + 1 ?></td>
