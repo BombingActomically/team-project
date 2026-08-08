@@ -229,6 +229,16 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
+    <!-- [Font] Family -->
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+    
+    <!-- [Icon Fonts Required for Sidebar] -->
+    <link rel="stylesheet" href="assets/fonts/phosphor/duotone/style.css" />
+    <link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
+    <link rel="stylesheet" href="assets/fonts/feather.css" />
+    <link rel="stylesheet" href="assets/fonts/fontawesome.css" />
+    <link rel="stylesheet" href="assets/fonts/material.css" />
+
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <link rel="stylesheet" href="assets/css/style.css">
