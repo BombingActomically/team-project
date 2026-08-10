@@ -387,6 +387,153 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
         transform: scale(0.95); transition: transform 0.25s cubic-bezier(0.16, 1, 0.3, 1); overflow: hidden;
       }
       .evenza-modal-backdrop.show .evenza-modal-content { transform: scale(1); }
+      
+      /* Fallback CSS to hide Default theme option if it uses specific attributes */
+      .dropdown-menu .dropdown-item[data-value="default"],
+      .dropdown-menu .dropdown-item[onclick*="default"] {
+          display: none !important;
+      }
+    </style>
+
+    <!-- DARK THEME SPECIFIC OVERRIDES -->
+    <style>
+        :root{
+            --evenza-bg:#0D1117;
+            --evenza-card:#161B22;
+            --evenza-border:rgba(255,255,255,0.07);
+            --evenza-accent:#22C55E;
+            --evenza-accent-soft:rgba(34,197,94,0.12);
+        }
+
+        [data-pc-theme="dark"] body { background: var(--evenza-bg) !important; }
+        [data-pc-theme="dark"] .pc-container { background: var(--evenza-bg) !important; }
+        
+        /* Card Fixes */
+        [data-pc-theme="dark"] .card, 
+        [data-pc-theme="dark"] .main-card,
+        [data-pc-theme="dark"] .stat-card {
+            background-color: var(--evenza-card) !important;
+            border-color: var(--evenza-border) !important;
+        }
+        [data-pc-theme="dark"] .main-card-header,
+        [data-pc-theme="dark"] .card-footer {
+            background-color: transparent !important;
+            border-bottom: 1px solid var(--evenza-border) !important;
+            border-top: 1px solid var(--evenza-border) !important;
+        }
+        
+        /* Text Colors */
+        [data-pc-theme="dark"] .page-title,
+        [data-pc-theme="dark"] h2,
+        [data-pc-theme="dark"] h5,
+        [data-pc-theme="dark"] h6,
+        [data-pc-theme="dark"] .text-dark,
+        [data-pc-theme="dark"] .card-body h4,
+        [data-pc-theme="dark"] .fw-bold,
+        [data-pc-theme="dark"] .fw-semibold,
+        [data-pc-theme="dark"] strong {
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .text-muted,
+        [data-pc-theme="dark"] .page-subtitle,
+        [data-pc-theme="dark"] .custom-breadcrumb li {
+            color: #8B949E !important;
+        }
+        [data-pc-theme="dark"] .custom-breadcrumb li a {
+            color: #8B949E !important;
+        }
+        [data-pc-theme="dark"] .custom-breadcrumb li a:hover {
+            color: #E6EDF3 !important;
+        }
+
+        /* Dropdown Menu Fix (Theme Switcher / Actions) */
+        [data-pc-theme="dark"] .dropdown-menu {
+            background-color: var(--evenza-card) !important;
+            border-color: var(--evenza-border) !important;
+        }
+        [data-pc-theme="dark"] .dropdown-item {
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .dropdown-item:hover,
+        [data-pc-theme="dark"] .dropdown-item:focus {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            color: #E6EDF3 !important;
+        }
+
+        /* Table Fixes */
+        [data-pc-theme="dark"] .table {
+            --bs-table-bg: transparent !important; 
+            color: #E6EDF3 !important; 
+        }
+        [data-pc-theme="dark"] .table th,
+        [data-pc-theme="dark"] .table td {
+            background-color: transparent !important;
+            border-bottom: 1px solid var(--evenza-border) !important;
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .table thead th,
+        [data-pc-theme="dark"] .table-light th {
+            background: var(--evenza-bg) !important;
+            color: #8B949E !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        [data-pc-theme="dark"] .table tbody tr:hover td {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+        
+        /* Forms & Select options */
+        [data-pc-theme="dark"] .form-control,
+        [data-pc-theme="dark"] .form-select,
+        [data-pc-theme="dark"] .input-group-text {
+            background-color: #0D1117 !important;
+            border-color: var(--evenza-border) !important;
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .form-control:focus,
+        [data-pc-theme="dark"] .form-select:focus {
+            background-color: #0D1117 !important;
+            border-color: var(--evenza-accent) !important;
+            color: #E6EDF3 !important;
+            box-shadow: 0 0 0 3px var(--evenza-accent-soft) !important;
+        }
+        
+        [data-pc-theme="dark"] option {
+            background-color: #0D1117;
+            color: #E6EDF3;
+        }
+
+        /* Chart Tabs (30D, 7D, 90D) */
+        [data-pc-theme="dark"] .chart-tab-btn {
+            background-color: #0D1117 !important;
+            border-color: var(--evenza-border) !important;
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .chart-tab-btn.active, 
+        [data-pc-theme="dark"] .chart-tab-btn:hover {
+            background-color: rgba(88, 166, 255, 0.15) !important;
+            color: #58A6FF !important;
+            border-color: transparent !important;
+        }
+        
+        /* Modals & overrides for bg-light classes */
+        [data-pc-theme="dark"] .evenza-modal-content {
+            background-color: var(--evenza-card) !important;
+            color: #E6EDF3 !important;
+            border: 1px solid var(--evenza-border) !important;
+        }
+        [data-pc-theme="dark"] .bg-light {
+            background-color: transparent !important;
+            border-color: var(--evenza-border) !important;
+        }
+
+        /* RED CANCEL/CROSS BUTTON IN MODALS */
+        [data-pc-theme="dark"] .btn-close {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23F85149'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") !important;
+            opacity: 0.8;
+        }
+        [data-pc-theme="dark"] .btn-close:hover {
+            opacity: 1;
+        }
     </style>
   </head>
 
@@ -1303,5 +1450,24 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
       preset_change('preset-1');
       main_layout_change('vertical');
     </script>
+
+    <!-- Script to Hide 'Default' Theme Option -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        function removeDefaultOption() {
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                if (item.textContent.trim().toLowerCase() === 'default' || item.textContent.trim().toLowerCase().includes('default')) {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        removeDefaultOption();
+        
+        // Use MutationObserver in case the dropdown is injected dynamically by theme.js
+        const observer = new MutationObserver(removeDefaultOption);
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
+    </script>
+
   </body>
 </html>
