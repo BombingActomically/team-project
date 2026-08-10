@@ -648,16 +648,6 @@ unset(
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
 
-    <!-- [Font] Family -->
-    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
-    
-    <!-- [Icon Fonts Required for Sidebar] -->
-    <link rel="stylesheet" href="assets/fonts/phosphor/duotone/style.css" />
-    <link rel="stylesheet" href="assets/fonts/tabler-icons.min.css" />
-    <link rel="stylesheet" href="assets/fonts/feather.css" />
-    <link rel="stylesheet" href="assets/fonts/fontawesome.css" />
-    <link rel="stylesheet" href="assets/fonts/material.css" />
-
     <!-- Bootstrap -->
     <link
         href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
@@ -842,6 +832,174 @@ unset(
             }
         }
     </style>
+
+    <!-- Dark Theme Specific Overrides (Robust Fix) -->
+    <style>
+        :root{
+            --evenza-bg:#0D1117;
+            --evenza-card:#161B22;
+            --evenza-border:rgba(255,255,255,0.07);
+            --evenza-accent:#22C55E;
+            --evenza-accent-soft:rgba(34,197,94,0.12);
+        }
+
+        [data-pc-theme="dark"] body { background: var(--evenza-bg) !important; }
+        [data-pc-theme="dark"] .pc-container { background: var(--evenza-bg) !important; }
+        
+        /* Card Fixes */
+        [data-pc-theme="dark"] .card, 
+        [data-pc-theme="dark"] .main-card {
+            background-color: var(--evenza-card) !important;
+            border-color: var(--evenza-border) !important;
+        }
+        [data-pc-theme="dark"] .main-card-header,
+        [data-pc-theme="dark"] .card-footer {
+            background-color: transparent !important;
+            border-bottom: 1px solid var(--evenza-border) !important;
+            border-top: 1px solid var(--evenza-border) !important;
+        }
+        
+        /* Text Colors & Breadcrumb */
+        [data-pc-theme="dark"] .page-title,
+        [data-pc-theme="dark"] .university-name,
+        [data-pc-theme="dark"] h5,
+        [data-pc-theme="dark"] .text-dark,
+        [data-pc-theme="dark"] .card-body h4 {
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .text-muted,
+        [data-pc-theme="dark"] .page-subtitle,
+        [data-pc-theme="dark"] .custom-breadcrumb li,
+        [data-pc-theme="dark"] .custom-breadcrumb li a,
+        [data-pc-theme="dark"] #showingCountText {
+            color: #8B949E !important;
+        }
+        [data-pc-theme="dark"] .custom-breadcrumb li a:hover {
+            color: #E6EDF3 !important;
+        }
+
+        /* Dropdown Menu Fix */
+        [data-pc-theme="dark"] .dropdown-menu {
+            background-color: var(--evenza-card) !important;
+            border-color: var(--evenza-border) !important;
+        }
+        [data-pc-theme="dark"] .dropdown-item {
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .dropdown-item:hover,
+        [data-pc-theme="dark"] .dropdown-item:focus {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            color: #E6EDF3 !important;
+        }
+
+        /* Table Fixes */
+        [data-pc-theme="dark"] .table {
+            --bs-table-bg: transparent !important; 
+            color: #E6EDF3 !important; 
+        }
+        [data-pc-theme="dark"] .table th,
+        [data-pc-theme="dark"] .table td {
+            background-color: transparent !important;
+            border-bottom: 1px solid var(--evenza-border) !important;
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .table thead th {
+            background-color: var(--evenza-bg) !important;
+            color: #8B949E !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        [data-pc-theme="dark"] .table tbody tr:hover td {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+        
+        /* Forms */
+        [data-pc-theme="dark"] .form-control,
+        [data-pc-theme="dark"] .form-select {
+            background-color: #0D1117 !important;
+            border-color: var(--evenza-border) !important;
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .form-control:focus,
+        [data-pc-theme="dark"] .form-select:focus {
+            background-color: #0D1117 !important;
+            border-color: var(--evenza-accent) !important;
+            color: #E6EDF3 !important;
+            box-shadow: 0 0 0 3px var(--evenza-accent-soft) !important;
+        }
+
+        /* FILE INPUT BUTTON FIX */
+        [data-pc-theme="dark"] .form-control::file-selector-button {
+            background-color: #E6EDF3 !important;
+            color: #0D1117 !important;
+            border: none !important;
+            border-right: 1px solid var(--evenza-border) !important;
+            margin: -0.375rem -0.75rem;
+            margin-right: 0.75rem;
+            padding: 0.375rem 0.75rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease-in-out;
+        }
+        [data-pc-theme="dark"] .form-control:hover::file-selector-button {
+            background-color: #cdd5df !important;
+        }
+        
+        /* Misc elements */
+        [data-pc-theme="dark"] .university-logo {
+            border-color: var(--evenza-border) !important;
+            background: #0D1117 !important;
+        }
+        [data-pc-theme="dark"] .action-btn {
+            background-color: #232B36 !important;
+            border-color: #232B36 !important;
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .action-btn:hover {
+            background-color: #303B4A !important;
+        }
+        [data-pc-theme="dark"] .modal-content {
+            background-color: var(--evenza-card) !important;
+            color: #E6EDF3 !important;
+            border-color: var(--evenza-border) !important;
+        }
+        [data-pc-theme="dark"] .modal-header,
+        [data-pc-theme="dark"] .modal-footer {
+            border-color: var(--evenza-border) !important;
+        }
+
+        /* RED CANCEL/CROSS BUTTON IN MODALS */
+        [data-pc-theme="dark"] .btn-close {
+            background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16' fill='%23F85149'%3e%3cpath d='M.293.293a1 1 0 011.414 0L8 6.586 14.293.293a1 1 0 111.414 1.414L9.414 8l6.293 6.293a1 1 0 01-1.414 1.414L8 9.414l-6.293 6.293a1 1 0 01-1.414-1.414L6.586 8 .293 1.707a1 1 0 010-1.414z'/%3e%3c/svg%3e") !important;
+            opacity: 0.8;
+        }
+        [data-pc-theme="dark"] .btn-close:hover {
+            opacity: 1;
+        }
+        
+        /* Pagination Fixes */
+        [data-pc-theme="dark"] .page-link {
+            background-color: #0D1117 !important;
+            border-color: var(--evenza-border) !important;
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .page-item.active .page-link {
+            background-color: var(--evenza-accent) !important;
+            border-color: var(--evenza-accent) !important;
+            color: #04170C !important;
+        }
+        
+        /* Stat Icons */
+        [data-pc-theme="dark"] .stat-icon.icon-primary { background: rgba(88,166,255,0.12); color: #58A6FF; }
+        [data-pc-theme="dark"] .stat-icon.icon-success { background: rgba(34,197,94,0.12); color: #22C55E; }
+        [data-pc-theme="dark"] .stat-icon.icon-danger { background: rgba(248,81,73,0.12); color: #F85149; }
+
+        /* HIDE DEFAULT THEME OPTION GLOBALLY */
+        .dropdown-menu .dropdown-item[data-value="default"],
+        .dropdown-menu .dropdown-item[onclick*="default"] {
+            display: none !important;
+        }
+    </style>
+
 </head>
 
 <body>
@@ -1273,7 +1431,7 @@ unset(
                 </div>
 
                 <!-- Footer with 5, 10, 25 Limit Selector & Compact Pagination -->
-                <div class="card-footer bg-white border-top py-3">
+                <div class="card-footer border-top py-3">
                     <div class="row align-items-center g-3">
                         <div class="col-md-6 col-12">
                             <div class="d-flex align-items-center gap-2">
@@ -1346,7 +1504,7 @@ unset(
 
                             <div class="col-md-6">
 
-                                <label class="form-label">
+                                <label class="form-label text-muted">
                                     University Name
                                 </label>
 
@@ -1366,7 +1524,7 @@ unset(
 
                             <div class="col-md-6">
 
-                                <label class="form-label">
+                                <label class="form-label text-muted">
                                     Short Name
                                 </label>
 
@@ -1386,7 +1544,7 @@ unset(
 
                             <div class="col-md-6">
 
-                                <label class="form-label">
+                                <label class="form-label text-muted">
                                     Email
                                 </label>
 
@@ -1405,7 +1563,7 @@ unset(
 
                             <div class="col-md-6">
 
-                                <label class="form-label">
+                                <label class="form-label text-muted">
                                     Phone
                                 </label>
 
@@ -1424,7 +1582,7 @@ unset(
 
                             <div class="col-md-6">
 
-                                <label class="form-label">
+                                <label class="form-label text-muted">
                                     Status
                                 </label>
 
@@ -1455,7 +1613,7 @@ unset(
 
                             <div class="col-md-6">
 
-                                <label class="form-label">
+                                <label class="form-label text-muted">
 
                                     Logo
 
@@ -1480,7 +1638,7 @@ unset(
 
                             <div class="col-12">
 
-                                <label class="form-label">
+                                <label class="form-label text-muted">
                                     Address
                                 </label>
 
@@ -1580,7 +1738,7 @@ unset(
 
                                 <div class="col-md-6">
 
-                                    <label class="form-label">
+                                    <label class="form-label text-muted">
                                         University Name
                                     </label>
 
@@ -1601,7 +1759,7 @@ unset(
 
                                 <div class="col-md-6">
 
-                                    <label class="form-label">
+                                    <label class="form-label text-muted">
                                         Short Name
                                     </label>
 
@@ -1622,7 +1780,7 @@ unset(
 
                                 <div class="col-md-6">
 
-                                    <label class="form-label">
+                                    <label class="form-label text-muted">
                                         Email
                                     </label>
 
@@ -1642,7 +1800,7 @@ unset(
 
                                 <div class="col-md-6">
 
-                                    <label class="form-label">
+                                    <label class="form-label text-muted">
                                         Phone
                                     </label>
 
@@ -1662,7 +1820,7 @@ unset(
 
                                 <div class="col-md-6">
 
-                                    <label class="form-label">
+                                    <label class="form-label text-muted">
                                         Status
                                     </label>
 
@@ -1697,7 +1855,7 @@ unset(
 
                                 <div class="col-md-6">
 
-                                    <label class="form-label">
+                                    <label class="form-label text-muted">
 
                                         <?= empty($u['logo'])
                                             ? 'Logo'
@@ -1737,7 +1895,7 @@ unset(
 
                                 <div class="col-12">
 
-                                    <label class="form-label">
+                                    <label class="form-label text-muted">
                                         Address
                                     </label>
 
@@ -2207,6 +2365,24 @@ unset(
         layout_rtl_change('false');
         preset_change('preset-1');
         main_layout_change('vertical');
+    </script>
+
+    <!-- Script to Hide 'Default' Theme Option -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        function removeDefaultOption() {
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                if (item.textContent.trim().toLowerCase() === 'default' || item.textContent.trim().toLowerCase().includes('default')) {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        removeDefaultOption();
+        
+        // Use MutationObserver in case the dropdown is injected dynamically by theme.js
+        const observer = new MutationObserver(removeDefaultOption);
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
     </script>
 
 </body>
