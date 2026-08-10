@@ -29,7 +29,8 @@ try {
     die('Database connection failed.');
 }
 
-$PHOTO_WEB_PATH = 'assets/images/students/profiles/';
+// Fixed path to match the rest of your system so images load properly
+$PHOTO_WEB_PATH = 'assets/images/user/';
 
 /* =========================================================
    FETCH TEAM DETAILS
@@ -134,6 +135,137 @@ unset($_SESSION['flash']);
         .member-avatar { width: 46px; height: 46px; object-fit: cover; border-radius: 12px; border: 1px solid #e5e7eb; background: #f8f9fa; }
         .leader-avatar { width: 80px; height: 80px; object-fit: cover; border-radius: 16px; border: 1px solid #e5e7eb; }
     </style>
+
+    <!-- Dark Theme Specific Overrides (Robust Fix) -->
+    <style>
+        :root{
+            --evenza-bg:#0D1117;
+            --evenza-card:#161B22;
+            --evenza-border:rgba(255,255,255,0.07);
+            --evenza-accent:#22C55E;
+            --evenza-accent-soft:rgba(34,197,94,0.12);
+        }
+
+        [data-pc-theme="dark"] body { background: var(--evenza-bg) !important; }
+        [data-pc-theme="dark"] .pc-container { background: var(--evenza-bg) !important; }
+        
+        /* Card Fixes */
+        [data-pc-theme="dark"] .card, 
+        [data-pc-theme="dark"] .main-card {
+            background-color: var(--evenza-card) !important;
+            border-color: var(--evenza-border) !important;
+        }
+        [data-pc-theme="dark"] .main-card-header,
+        [data-pc-theme="dark"] .card-footer {
+            background-color: transparent !important;
+            border-bottom: 1px solid var(--evenza-border) !important;
+            border-top: 1px solid var(--evenza-border) !important;
+        }
+        
+        /* Text Colors */
+        [data-pc-theme="dark"] .page-title,
+        [data-pc-theme="dark"] h5,
+        [data-pc-theme="dark"] h6,
+        [data-pc-theme="dark"] .text-dark,
+        [data-pc-theme="dark"] .card-body h4,
+        [data-pc-theme="dark"] .fw-bold,
+        [data-pc-theme="dark"] .fw-semibold,
+        [data-pc-theme="dark"] .fw-medium,
+        [data-pc-theme="dark"] strong {
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .text-muted,
+        [data-pc-theme="dark"] .page-subtitle,
+        [data-pc-theme="dark"] .custom-breadcrumb li {
+            color: #8B949E !important;
+        }
+        [data-pc-theme="dark"] .custom-breadcrumb li a {
+            color: #8B949E !important;
+        }
+        [data-pc-theme="dark"] .custom-breadcrumb li a:hover {
+            color: #E6EDF3 !important;
+        }
+
+        /* Dropdown Menu Fix */
+        [data-pc-theme="dark"] .dropdown-menu {
+            background-color: var(--evenza-card) !important;
+            border-color: var(--evenza-border) !important;
+        }
+        [data-pc-theme="dark"] .dropdown-item {
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .dropdown-item:hover,
+        [data-pc-theme="dark"] .dropdown-item:focus {
+            background-color: rgba(255, 255, 255, 0.05) !important;
+            color: #E6EDF3 !important;
+        }
+
+        /* Table Fixes */
+        [data-pc-theme="dark"] .table {
+            --bs-table-bg: transparent !important; 
+            color: #E6EDF3 !important; 
+        }
+        [data-pc-theme="dark"] .table th,
+        [data-pc-theme="dark"] .table td {
+            background-color: transparent !important;
+            border-bottom: 1px solid var(--evenza-border) !important;
+            color: #E6EDF3 !important;
+        }
+        [data-pc-theme="dark"] .table thead th,
+        [data-pc-theme="dark"] .table-light th {
+            background-color: var(--evenza-bg) !important;
+            color: #8B949E !important;
+            border-bottom: 1px solid rgba(255,255,255,0.1) !important;
+        }
+        [data-pc-theme="dark"] .table tbody tr:hover td {
+            background-color: rgba(255, 255, 255, 0.04) !important;
+        }
+
+        /* Badges Fix for Team Details */
+        [data-pc-theme="dark"] .bg-primary-subtle {
+            background-color: rgba(88, 166, 255, 0.15) !important;
+            color: #58A6FF !important;
+        }
+        [data-pc-theme="dark"] .bg-success-subtle {
+            background-color: rgba(34, 197, 94, 0.15) !important;
+            color: #22C55E !important;
+        }
+        [data-pc-theme="dark"] .border-primary-subtle {
+            border-color: rgba(88, 166, 255, 0.3) !important;
+        }
+        [data-pc-theme="dark"] .border-success-subtle {
+            border-color: rgba(34, 197, 94, 0.3) !important;
+        }
+        [data-pc-theme="dark"] .text-primary {
+            color: #58A6FF !important;
+        }
+        [data-pc-theme="dark"] .text-success {
+            color: #22C55E !important;
+        }
+        
+        /* Buttons Fix */
+        [data-pc-theme="dark"] .btn-outline-secondary {
+            color: #8B949E !important;
+            border-color: rgba(255,255,255,0.1) !important;
+        }
+        [data-pc-theme="dark"] .btn-outline-secondary:hover {
+            background-color: rgba(255,255,255,0.05) !important;
+            color: #E6EDF3 !important;
+        }
+        
+        /* Misc elements */
+        [data-pc-theme="dark"] .member-avatar,
+        [data-pc-theme="dark"] .leader-avatar {
+            border-color: var(--evenza-border) !important;
+            background: #0D1117 !important;
+        }
+
+        /* HIDE DEFAULT THEME OPTION GLOBALLY */
+        .dropdown-menu .dropdown-item[data-value="default"],
+        .dropdown-menu .dropdown-item[onclick*="default"] {
+            display: none !important;
+        }
+    </style>
 </head>
 
 <body>
@@ -165,7 +297,7 @@ unset($_SESSION['flash']);
                         <?= $team ? 'Viewing details for team: ' . htmlspecialchars($team['team_name']) : 'No team selected' ?>
                     </p>
                     <ul class="custom-breadcrumb">
-                        <li><a href="Index.php">Home</a></li>
+                        <li><a href="Dashboard.php">Home</a></li>
                         <li><a href="allteams.php">Team Management</a></li>
                         <li>Team Details</li>
                     </ul>
@@ -349,6 +481,24 @@ unset($_SESSION['flash']);
         layout_rtl_change('false');
         preset_change('preset-1');
         main_layout_change('vertical');
+    </script>
+
+    <!-- Script to Hide 'Default' Theme Option -->
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        function removeDefaultOption() {
+            document.querySelectorAll('.dropdown-item').forEach(item => {
+                if (item.textContent.trim().toLowerCase() === 'default' || item.textContent.trim().toLowerCase().includes('default')) {
+                    item.style.display = 'none';
+                }
+            });
+        }
+        removeDefaultOption();
+        
+        // Use MutationObserver in case the dropdown is injected dynamically by theme.js
+        const observer = new MutationObserver(removeDefaultOption);
+        observer.observe(document.body, { childList: true, subtree: true });
+      });
     </script>
 
 </body>
