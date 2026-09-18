@@ -1,7 +1,7 @@
 <?php
 session_start();
 
-if (!isset($_SESSION['college_id']) OR$_SESSION['user_role'] !== 'college') {
+if (!isset($_SESSION['college_id']) OR $_SESSION['user_role'] !== 'college') {
     header("Location: college-login.php");
     exit();
 }
@@ -16,6 +16,21 @@ try {
     $pdo = new PDO("mysql:host=$host;dbname=$dbname;charset=utf8mb4", $username, $password);$pdo->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
 } catch (PDOException $e) {
     die("Database connection failed: " . $e->getMessage());
+}
+
+// --- Real-Time College Ban / Inactive Check ---
+$banCheck =$pdo->prepare("SELECT status FROM colleges WHERE college_id = :cid LIMIT 1");
+$banCheck->execute(['cid' =>$college_id]);
+$currentCollegeStatus =$banCheck->fetchColumn();
+
+if (!$currentCollegeStatus OR strtolower($currentCollegeStatus) !== 'active') {
+    // Destroy session if college account is deactivated or banned
+    session_unset();
+    session_destroy();
+    session_start();
+    $_SESSION['login_error'] = "Your institutional account has been deactivated or suspended by the administrator.";
+    header("Location: college-login.php");
+    exit();
 }
 
 $statStudents =$pdo->prepare("SELECT COUNT(*) FROM students WHERE college_id = :cid");

@@ -27,6 +27,24 @@ try {
     die("Database connection failed: " . $e->getMessage());
 }
 
+// --- Real-Time Ban / Inactive Check ---
+$banCheck = $pdo->prepare("SELECT account_status FROM students WHERE student_id = :uid LIMIT 1");
+$banCheck->execute(['uid' => $user_id]);
+$currentStatus = $banCheck->fetchColumn();
+
+if (!$currentStatus || strtolower($currentStatus) !== 'active') {
+    // Destroy session and cookies if banned/inactive
+    session_unset();
+    session_destroy();
+    if (isset($_COOKIE['eventra_user'])) {
+        setcookie('eventra_user', '', time() - 3600, "/");
+    }
+    session_start();
+    $_SESSION['login_error'] = "Your account has been deactivated or banned by the administrator.";
+    header("Location: login.php");
+    exit();
+}
+
 $success_msg = '';
 $error_msg = '';
 

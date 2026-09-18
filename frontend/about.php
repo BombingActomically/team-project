@@ -27,7 +27,7 @@ include_once 'components/header.php';
 include_once 'components/navbar.php';
 ?>
 
-<!-- ============ EVENTRA DESIGN SYSTEM — Midnight Indigo / Vanilla Cream ============ -->
+<!-- ============ EVENTURA DESIGN SYSTEM — Midnight Indigo / Vanilla Cream ============ -->
 <style>
   :root {
     --bg: #EEEBDA;             
@@ -98,10 +98,10 @@ include_once 'components/navbar.php';
                 The Platform
             </span>
             <h1 class="text-3xl sm:text-5xl font-extrabold font-outfit tracking-tight leading-none" style="color: var(--text);">
-                What is EVENTRA?
+                What is EVENTURA?
             </h1>
             <p class="text-sm sm:text-base max-w-2xl mx-auto font-normal leading-relaxed" style="color: var(--text-dim);">
-                EVENTRA is a multi-tenant SaaS platform built to unify campus life. We connect university event organizers with a nationwide network of students, streamlining registrations, financial routing, and live roster management into one highly secure ecosystem.
+                EVENTURA is a multi-tenant SaaS platform built to unify campus life. We connect university event organizers with a nationwide network of students, streamlining registrations, financial routing, and live roster management into one highly secure ecosystem.
             </p>
         </div>
     </section>
@@ -141,7 +141,7 @@ include_once 'components/navbar.php';
                     </div>
                     <h3 class="text-xl font-bold font-outfit" style="color: var(--text);">Global Discovery</h3>
                     <p class="text-xs leading-relaxed" style="color: var(--text-dim);">
-                        A central directory connecting engineers, designers, and athletes from diverse universities. EVENTRA bridges the gap between campus talent and national competition.
+                        A central directory connecting engineers, designers, and athletes from diverse universities. EVENTURA bridges the gap between campus talent and national competition.
                     </p>
                 </div>
             </div>
@@ -155,7 +155,7 @@ include_once 'components/navbar.php';
                         <span class="text-xs uppercase font-bold tracking-widest block" style="color: var(--accent);">The Engineering</span>
                         <h2 class="text-2xl sm:text-4xl font-bold font-outfit" style="color: var(--text);">Built for Scale. Designed for Students.</h2>
                         <p class="text-xs sm:text-sm leading-relaxed" style="color: var(--text-dim);">
-                            We believe that participating in technical symposia, hackathons, and sports fests shapes career trajectories just as much as classroom theory. However, the administrative burden of cross-college registration historically stifles participation. By automating data flow, payment routing, and roster verification, EVENTRA lets students focus on the competition, and colleges focus on the execution.
+                            We believe that participating in technical symposia, hackathons, and sports fests shapes career trajectories just as much as classroom theory. However, the administrative burden of cross-college registration historically stifles participation. By automating data flow, payment routing, and roster verification, EVENTURA lets students focus on the competition, and colleges focus on the execution.
                         </p>
                         <div class="pt-4 flex items-center gap-6 text-center lg:text-left">
                             <div>
@@ -173,7 +173,7 @@ include_once 'components/navbar.php';
                         <div class="p-6 rounded-2xl text-center w-full max-w-sm" style="background-color: var(--bg); border: 1px solid var(--border-soft);">
                             <i data-lucide="sparkles" class="w-12 h-12 mx-auto mb-4 animate-pulse" style="color: var(--accent);"></i>
                             <h4 class="text-base font-bold font-outfit" style="color: var(--text);">Deploy on Your Campus</h4>
-                            <p class="text-[11px] mt-1 mb-4 leading-relaxed" style="color: var(--text-dim);">Want to migrate your college's flagship fest management to the EVENTRA ecosystem?</p>
+                            <p class="text-[11px] mt-1 mb-4 leading-relaxed" style="color: var(--text-dim);">Want to migrate your college's flagship fest management to the EVENTURA ecosystem?</p>
                             <a href="contact.php" class="eb-btn-fill w-full">
                                 Contact Administration
                             </a>

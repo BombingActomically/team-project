@@ -4,12 +4,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EVENTRA | Multi-College Event Management Platform</title>
+    <title>EVENTURA | Multi-College Event Management Platform</title>
     
     <!-- Meta tags for SEO -->
     <meta name="description" content="Discover, connect, and compete in inter-college events, fests, hackathons, and seminars. The ultimate destination for college students to network and showcase talent.">
     <meta name="keywords" content="college events, hackathon 2026, tech fests, inter-college events, sports tournament, cultural fest, workshop, code storm, robot wars">
-    <meta name="author" content="EVENTRA Team">
+    <meta name="author" content="EVENTURA Team">
     
     <!-- Google Fonts: Outfit (headings) & Inter (body) -->
     <link rel="preconnect" href="https://fonts.googleapis.com">

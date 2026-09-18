@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Sep 18, 2026 at 06:33 AM
+-- Generation Time: Sep 18, 2026 at 04:38 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.2.12
 
@@ -98,7 +98,7 @@ CREATE TABLE `colleges` (
 --
 
 INSERT INTO `colleges` (`college_id`, `university_id`, `name`, `slug`, `email`, `password`, `phone`, `address`, `logo`, `status`, `created_at`, `updated_at`) VALUES
-(100, 3, 'Stanford College of Engineering', 'stanford-engineering', 'engineering@stanford.edu', '123456', '+1 555 111 001', 'Stanford, CA', 'c_52568d6e97c7f3ed.jpg', 'active', '2026-08-06 07:17:04', '2026-09-18 02:24:04'),
+(100, 3, 'Stanford College of Engineering', 'stanford-engineering', 'engineering@stanford.edu', '123456', '+1 555 111 001', 'Stanford, CA', 'c_52568d6e97c7f3ed.jpg', 'inactive', '2026-08-06 07:17:04', '2026-09-18 13:04:45'),
 (101, 3, 'Stanford Graduate School of Business', 'stanford-business', 'business@stanford.edu', '123456', '+1 555 111 002', 'Stanford, CA', 'c_d543e94e37210067.jpg', 'active', '2026-08-06 07:17:04', '2026-08-06 11:59:27'),
 (102, 4, 'MIT School of Engineering', 'mit-engineering', 'engg@mit.edu', '123456', '+1 777 222 001', 'Cambridge, MA', 'c_f6e8b67f12cbb769.jpg', 'active', '2026-08-06 07:17:04', '2026-08-07 12:36:18'),
 (103, 4, 'MIT Sloan School of Management', 'mit-sloan', 'sloan@mit.edu', '123456', '+1 777 222 002', 'Cambridge, MA', 'c_6d76ff122a3d3b3c.jpg', 'active', '2026-08-06 07:17:04', '2026-08-06 12:01:05'),
@@ -177,7 +177,8 @@ INSERT INTO `colleges` (`college_id`, `university_id`, `name`, `slug`, `email`, 
 (176, 41, 'Christ School of Commerce', 'christ-commerce', 'commerce@christuniversity.in', '123456', '+91 80 4012 9101', 'Bengaluru, Karnataka', 'c_46c7c03bd8eabb42.jpg', 'active', '2026-08-06 07:17:04', '2026-08-06 07:36:26'),
 (177, 41, 'Christ School of Law', 'christ-law', 'law@christuniversity.in', '123456', '+91 80 4012 9102', 'Bengaluru, Karnataka', 'c_f78f2add77fa79b1.jpg', 'active', '2026-08-06 07:17:04', '2026-08-06 07:35:32'),
 (178, 42, 'Manipal Institute of Technology', 'mahe-mit', 'mit@manipal.edu', '123456', '+91 820 292 2401', 'Manipal, Karnataka', 'c_ee79d003fea89761.jpg', 'active', '2026-08-06 07:17:04', '2026-08-06 07:27:29'),
-(179, 42, 'Kasturba Medical College', 'mahe-kmc', 'kmc@manipal.edu', '123456', '+91 820 292 2402', 'Manipal, Karnataka', 'c_e0416ba44b425b20.jpg', 'active', '2026-08-06 07:17:04', '2026-08-06 07:22:45');
+(179, 42, 'Kasturba Medical College', 'mahe-kmc', 'kmc@manipal.edu', '123456', '+91 820 292 2402', 'Manipal, Karnataka', 'c_e0416ba44b425b20.jpg', 'active', '2026-08-06 07:17:04', '2026-08-06 07:22:45'),
+(180, 11, 'ABC', '', 'clg@gmail.com', '$2y$10$4t8.1JDJMbnTXAdzypA6t.WSM6ssjVQIINZnM8MYrq.imRwIrYxIi', NULL, '343, sundarvan soc. DAndi road, morabhagal, surat', NULL, 'active', '2026-09-18 14:26:10', '2026-09-18 14:26:10');
 
 -- --------------------------------------------------------
 
@@ -239,7 +240,9 @@ INSERT INTO `events` (`event_id`, `college_id`, `category_id`, `title`, `descrip
 (9, 108, 7, 'Canvas Painting & Sketching', 'Express your creativity on canvas through fine arts, oil painting, and expressive sketching.', 'solo', 1, 1, 'per_person', 100.00, '2026-11-12 23:59:59', '2026-11-18', '10:00:00', '14:00:00', 'Fine Arts Studio Room 3', NULL, 'active', '2026-08-07 06:09:23', '2026-09-18 01:53:40'),
 (10, 109, 8, 'Extempore & Parliamentary Debate', 'Test your eloquence, vocabulary, and sharp critical thinking through structured debates.', 'solo', 1, 1, 'per_person', 50.00, '2026-11-25 23:59:59', '2026-12-02', '14:00:00', '17:30:00', 'Library Seminar Room', NULL, 'active', '2026-08-07 06:09:23', '2026-09-18 01:53:41'),
 (11, 100, 1, 'Winter AI Challenge 2026', 'A premier 48-hour AI and Machine Learning hackathon happening this winter. Collaborate to build next-gen models and solve real-world problems.', 'team', 2, 4, 'per_team', 500.00, '2026-10-10 23:59:00', '2026-10-15', '09:10:00', '18:00:00', 'Online', NULL, 'active', '2026-09-17 08:58:06', '2026-09-18 02:21:26'),
-(12, 138, 3, 'Reverse Run', 'Run Backwards to win', 'solo', 1, 1, 'per_person', 100.00, '2026-09-30 00:00:00', '2026-12-25', '10:40:00', '13:50:00', 'Parul Sports Ground', NULL, 'active', '2026-09-17 15:46:39', '2026-09-18 02:21:43');
+(12, 138, 3, 'Reverse Run', 'Run Backwards to win', 'solo', 1, 1, 'per_person', 100.00, '2026-09-30 00:00:00', '2026-12-25', '10:40:00', '13:50:00', 'Parul Sports Ground', NULL, 'active', '2026-09-17 15:46:39', '2026-09-18 02:21:43'),
+(14, 101, 1, 'abc', 'hello world this is a new event take part', 'solo', 1, 1, 'per_person', 100.00, '2026-10-05 19:59:00', '2026-11-01', NULL, NULL, 'Online', NULL, '', '2026-09-18 14:29:46', '2026-09-18 14:29:46'),
+(15, 180, 3, 'Ping Pong', 'Play Ping Pong Ball, Whoever Drops first loses', 'solo', 1, 1, 'per_person', 120.00, '2026-09-30 20:06:00', '2026-10-16', '09:00:00', '18:10:00', 'Haryana Sports Complex', NULL, 'active', '2026-09-18 14:36:52', '2026-09-18 14:36:52');
 
 -- --------------------------------------------------------
 
@@ -674,7 +677,11 @@ INSERT INTO `payments` (`payment_id`, `registration_id`, `amount`, `payment_meth
 (334, 342, 100.00, NULL, NULL, 'paid', '2026-09-17 16:23:34'),
 (335, 343, 100.00, NULL, NULL, 'paid', '2026-09-17 16:23:34'),
 (336, 344, 100.00, NULL, NULL, 'paid', '2026-09-17 16:23:34'),
-(337, 345, 100.00, NULL, NULL, 'paid', '2026-09-17 16:23:34');
+(337, 345, 100.00, NULL, NULL, 'paid', '2026-09-17 16:23:34'),
+(338, 346, 250.00, 'upi', 'TXN_EVN_6AAD22573DED0', 'paid', '2026-09-18 11:36:55'),
+(339, 347, 250.00, 'upi', 'TXN_EVN_6AAD29176DF44', 'paid', '2026-09-18 12:05:43'),
+(340, 348, 500.00, 'upi', 'TXN_EVN_6AAD4175EE903', 'paid', '2026-09-18 13:49:41'),
+(341, 349, 200.00, 'upi', 'TXN_EVN_6AAD49A77C7F0', 'paid', '2026-09-18 14:24:39');
 
 -- --------------------------------------------------------
 
@@ -700,7 +707,7 @@ INSERT INTO `registrations` (`registration_id`, `event_id`, `student_id`, `team_
 (1, 10, 1, NULL, 'solo', 'approved', '2026-08-07 07:13:53'),
 (2, 9, 2, NULL, 'solo', 'approved', '2026-08-07 07:13:53'),
 (3, 8, 3, NULL, 'solo', 'pending', '2026-08-07 07:13:53'),
-(4, 7, 4, NULL, 'solo', 'approved', '2026-08-07 07:13:53'),
+(4, 7, 4, 69, 'team', 'approved', '2026-08-07 07:13:53'),
 (5, 1, 5, 1, 'team', 'approved', '2026-08-07 07:13:53'),
 (6, 3, 6, 2, 'team', 'pending', '2026-08-07 07:13:53'),
 (7, 4, 7, 3, 'team', 'approved', '2026-08-07 07:13:53'),
@@ -1041,7 +1048,11 @@ INSERT INTO `registrations` (`registration_id`, `event_id`, `student_id`, `team_
 (342, 12, 19, NULL, 'solo', 'approved', '2026-09-11 16:23:34'),
 (343, 12, 58, NULL, 'solo', 'approved', '2026-09-13 16:23:34'),
 (344, 12, 224, NULL, 'solo', 'approved', '2026-09-12 16:23:34'),
-(345, 12, 26, NULL, 'solo', 'approved', '2026-09-13 16:23:34');
+(345, 12, 26, NULL, 'solo', 'approved', '2026-09-13 16:23:34'),
+(346, 7, 12, 69, 'team', 'approved', '2026-09-18 11:36:55'),
+(347, 7, 13, NULL, NULL, 'approved', '2026-09-18 12:05:43'),
+(348, 11, 20, NULL, NULL, 'approved', '2026-09-18 13:49:41'),
+(349, 2, 243, NULL, NULL, 'approved', '2026-09-18 14:24:39');
 
 -- --------------------------------------------------------
 
@@ -1092,7 +1103,7 @@ INSERT INTO `students` (`student_id`, `college_id`, `enrollment_no`, `name`, `em
 (17, 105, 'STU-105-2', 'Harish Nair', 'harish.n105@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000017', 'male', 'Semester 6', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
 (18, 105, 'STU-105-3', 'Anita Das', 'anita.d105@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000018', 'female', 'Semester 6', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
 (19, 106, 'STU-106-1', 'Vijay Malya', 'vijay.m106@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000019', 'male', 'Semester 2', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
-(20, 106, 'STU-106-2', 'Kavita Singh', 'kavita.s106@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000020', 'female', 'Semester 2', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
+(20, 106, 'STU-106-2', 'Kavita Singh', 'kavita.s106@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000020', 'female', 'Semester 2', 'card.png', 'student_6aad413830868.jpg', 'pending', '2026-08-07 05:46:16', '2026-09-18 13:48:40', 'pending', 'active'),
 (21, 107, 'STU-107-1', 'Sanjay Dutt', 'sanjay.d107@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000021', 'male', 'Semester 4', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
 (22, 107, 'STU-107-2', 'Neha Kakar', 'neha.k107@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000022', 'female', 'Semester 4', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
 (23, 107, 'STU-107-3', 'Manish Malhotra', 'manish.m107@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000023', 'male', 'Semester 6', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
@@ -1315,7 +1326,8 @@ INSERT INTO `students` (`student_id`, `college_id`, `enrollment_no`, `name`, `em
 (239, 108, 'STU-108-4', 'Stebin Ben', 'stebin.b108@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000239', 'male', 'Semester 4', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
 (240, 109, 'STU-109-4', 'Akhil Pasreja', 'akhil.p109@example.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '9800000240', 'male', 'Semester 4', 'card.png', 'avatar.png', 'pending', '2026-08-07 05:46:16', '2026-09-17 12:55:02', 'pending', 'active'),
 (241, 138, 'STU-400-1', 'User', 'user@gmail.com', '$2y$10$GCRbcjfh6ukjTk0T3TRbs.Um3G/v9fyWzXXRMw4.U4oapBQR0yHuK', '1234567891', 'male', 'Semester 5', 'pending_id.png', 'student_6aabd8ad01cd0.png', 'pending', '2026-09-17 10:18:19', '2026-09-17 12:55:02', 'pending', 'active'),
-(242, 138, 'STU-400-2', 'User2', 'user2@gmail.com', '$2y$10$9yiXarAaOWGCCiU7vQH7yu9pAqm1i0S319UbhGhriUo9A2NbxKE.6', '1234567892', 'female', NULL, 'pending_id.png', 'student_6aabe952efc6a.jpg', 'pending', '2026-09-17 13:21:23', '2026-09-17 13:21:23', 'pending', 'active');
+(242, 138, 'STU-400-2', 'User2', 'user2@gmail.com', '$2y$10$9yiXarAaOWGCCiU7vQH7yu9pAqm1i0S319UbhGhriUo9A2NbxKE.6', '1234567892', 'female', NULL, 'pending_id.png', 'student_6aabe952efc6a.jpg', 'pending', '2026-09-17 13:21:23', '2026-09-17 13:21:23', 'pending', 'active'),
+(243, 102, 'stud111', 'Karan Bhajiwala', 'hello@gmail.com', '$2y$10$QvkpXhXymqoHsPyAbltm3uXFh6pWWE.NMOn6FNr.GJraFCdizLpaS', '06355120038', 'male', 'Semester 5', 'pending_id.png', 'default_avatar.png', 'pending', '2026-09-18 13:57:24', '2026-09-18 13:57:24', 'pending', 'active');
 
 -- --------------------------------------------------------
 
@@ -1404,7 +1416,8 @@ INSERT INTO `teams` (`team_id`, `event_id`, `leader_id`, `team_name`, `team_code
 (65, 11, 226, 'Runtime Terror 47', 'TM-F2DE6', '2026-09-17 16:23:34'),
 (66, 11, 216, 'Cyber Knights 32', 'TM-E724D', '2026-09-17 16:23:34'),
 (67, 11, 15, 'Byte Me 80', 'TM-1BFF4', '2026-09-17 16:23:34'),
-(68, 11, 113, 'Quantum Squad 91', 'TM-0FA4F', '2026-09-17 16:23:34');
+(68, 11, 113, 'Quantum Squad 91', 'TM-0FA4F', '2026-09-17 16:23:34'),
+(69, 7, 12, 'Pooja Fighter', 'TEAM-EE7188', '2026-09-18 11:56:44');
 
 -- --------------------------------------------------------
 
@@ -1620,7 +1633,9 @@ INSERT INTO `team_members` (`team_member_id`, `team_id`, `student_id`) VALUES
 (195, 67, 239),
 (196, 68, 113),
 (197, 68, 33),
-(198, 68, 17);
+(198, 68, 17),
+(200, 69, 4),
+(201, 69, 12);
 
 -- --------------------------------------------------------
 
@@ -1832,7 +1847,7 @@ ALTER TABLE `categories`
 -- AUTO_INCREMENT for table `colleges`
 --
 ALTER TABLE `colleges`
-  MODIFY `college_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=180;
+  MODIFY `college_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=181;
 
 --
 -- AUTO_INCREMENT for table `entry_passes`
@@ -1844,7 +1859,7 @@ ALTER TABLE `entry_passes`
 -- AUTO_INCREMENT for table `events`
 --
 ALTER TABLE `events`
-  MODIFY `event_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=14;
+  MODIFY `event_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=16;
 
 --
 -- AUTO_INCREMENT for table `event_contacts`
@@ -1880,31 +1895,31 @@ ALTER TABLE `inquiries`
 -- AUTO_INCREMENT for table `payments`
 --
 ALTER TABLE `payments`
-  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=338;
+  MODIFY `payment_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=342;
 
 --
 -- AUTO_INCREMENT for table `registrations`
 --
 ALTER TABLE `registrations`
-  MODIFY `registration_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=346;
+  MODIFY `registration_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=350;
 
 --
 -- AUTO_INCREMENT for table `students`
 --
 ALTER TABLE `students`
-  MODIFY `student_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=243;
+  MODIFY `student_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=244;
 
 --
 -- AUTO_INCREMENT for table `teams`
 --
 ALTER TABLE `teams`
-  MODIFY `team_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=69;
+  MODIFY `team_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=70;
 
 --
 -- AUTO_INCREMENT for table `team_members`
 --
 ALTER TABLE `team_members`
-  MODIFY `team_member_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=199;
+  MODIFY `team_member_id` int(11) NOT NULL AUTO_INCREMENT, AUTO_INCREMENT=202;
 
 --
 -- AUTO_INCREMENT for table `universities`

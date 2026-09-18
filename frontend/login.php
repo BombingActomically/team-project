@@ -18,21 +18,26 @@ try {
 }
 
 // --- Cookie Auto-Login Check ---
-// If the user is already logged in via Session OR Cookie, redirect to Dashboard
 if (isset($_SESSION['user_id']) && $_SESSION['user_role'] === 'student') {
     header("Location: dashboard.php");
     exit();
 } elseif (isset($_COOKIE['eventra_user'])) {
-    $stmt = $pdo->prepare("SELECT * FROM students WHERE student_id = :id AND account_status = 'active' LIMIT 1");
+    // Check if user is active before auto-logging in via cookie
+    $stmt = $pdo->prepare("SELECT * FROM students WHERE student_id = :id LIMIT 1");
     $stmt->execute(['id' => $_COOKIE['eventra_user']]);
     $student = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($student) {
-        $_SESSION['user_id'] = $student['student_id'];
-        $_SESSION['user_role'] = 'student';
-        $_SESSION['user_name'] = $student['name'];
-        header("Location: dashboard.php");
-        exit();
+        if (strtolower($student['account_status']) !== 'active') {
+            // Clear cookie if banned/inactive
+            setcookie('eventra_user', '', time() - 3600, "/");
+        } else {
+            $_SESSION['user_id'] = $student['student_id'];
+            $_SESSION['user_role'] = 'student';
+            $_SESSION['user_name'] = $student['name'];
+            header("Location: dashboard.php");
+            exit();
+        }
     }
 }
 
@@ -46,31 +51,37 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
     if (!empty($email) && !empty($pass)) {
         
-        $studentStmt = $pdo->prepare("SELECT * FROM students WHERE email = :email AND account_status = 'active' LIMIT 1");
+        // Fetch student regardless of status first to check if they are banned vs invalid email
+        $studentStmt = $pdo->prepare("SELECT * FROM students WHERE email = :email LIMIT 1");
         $studentStmt->execute(['email' => $email]);
         $student = $studentStmt->fetch(PDO::FETCH_ASSOC);
 
         if ($student) {
-            // Verify hashed password
+            // Verify hashed password first
             if (password_verify($pass, $student['password'])) {
                 
-                // Set Session
-                $_SESSION['user_id'] = $student['student_id'];
-                $_SESSION['user_role'] = 'student';
-                $_SESSION['user_name'] = $student['name'];
-                
-                // Set Cookie if "Remember me" is checked (expires in 30 days)
-                if (isset($_POST['remember-me'])) {
-                    setcookie('eventra_user', $student['student_id'], time() + (86400 * 30), "/"); 
-                }
+                // Check if account is active/banned
+                if (strtolower($student['account_status']) !== 'active') {
+                    $error_message = "Access Denied: This account has been deactivated or banned by the administrator.";
+                } else {
+                    // Set Session
+                    $_SESSION['user_id'] = $student['student_id'];
+                    $_SESSION['user_role'] = 'student';
+                    $_SESSION['user_name'] = $student['name'];
+                    
+                    // Set Cookie if "Remember me" is checked (expires in 30 days)
+                    if (isset($_POST['remember-me'])) {
+                        setcookie('eventra_user', $student['student_id'], time() + (86400 * 30), "/"); 
+                    }
 
-                header("Location: dashboard.php"); 
-                exit();
+                    header("Location: dashboard.php"); 
+                    exit();
+                }
             } else {
                 $error_message = "Invalid password.";
             }
         } else {
-            $error_message = "No active student account found with that email.";
+            $error_message = "No student account found with that email address.";
         }
         
     } else {
@@ -124,7 +135,7 @@ include_once 'components/navbar.php';
                 </div>
             <?php endif; ?>
 
-            <!-- Display Errors -->
+            <!-- Display Errors / Banned Notice -->
             <?php if (!empty($error_message)): ?>
                 <div class="bg-red-100 border border-red-300 text-red-700 px-4 py-3 rounded mb-6 text-sm flex items-center gap-2">
                     <i data-lucide="alert-circle" class="w-4 h-4 shrink-0"></i>

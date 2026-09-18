@@ -16,6 +16,7 @@ try {
     die("Database connection failed: " . $e->getMessage());
 }
 
+// Fixed status filter to display all events except cancelled ones
 $query = "
     SELECT 
         e.event_id as id,
@@ -33,7 +34,7 @@ $query = "
     FROM events e
     LEFT JOIN colleges c ON e.college_id = c.college_id
     LEFT JOIN categories cat ON e.category_id = cat.category_id
-    WHERE e.status = 'published'
+    WHERE e.status != 'cancelled'
     ORDER BY e.event_date ASC
 ";
 
@@ -59,7 +60,7 @@ $imageMap = [
 $defaultImage = 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=800&q=80';
 
 foreach ($rawEvents as $row) {
-    $isOnline = (stripos($row['venue'], 'online') !== false || stripos($row['venue'], 'virtual') !== false);
+    $isOnline = (stripos($row['venue'] ?? '', 'online') !== false || stripos($row['venue'] ?? '', 'virtual') !== false);
     $categoryName = $row['category'] ?? 'General';
     
     $allEvents[] = [
@@ -74,7 +75,7 @@ foreach ($rawEvents as $row) {
         'event_type' => ucfirst($row['event_type']),
         'registration_fee' => (float)$row['registration_fee'] > 0 ? '₹' . number_format($row['registration_fee'], 2) : 'Free',
         'participants' => $row['participants'] ?? 0,
-        'registration_open' => (strtotime($row['registration_deadline']) > $current_time),
+        'registration_open' => (empty($row['registration_deadline']) || strtotime($row['registration_deadline']) > $current_time),
         'image' => $imageMap[$categoryName] ?? $defaultImage
     ];
 }

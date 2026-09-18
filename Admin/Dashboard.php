@@ -40,16 +40,17 @@ $cancelled_regs     = (int)$pdo->query("SELECT COUNT(*) FROM registrations WHERE
 $approved_regs      = (int)$pdo->query("SELECT COUNT(*) FROM registrations WHERE status='approved'")->fetchColumn();
 $pending_regs       = (int)$pdo->query("SELECT COUNT(*) FROM registrations WHERE status='pending'")->fetchColumn();
 
-// Revenue calculation from DB
-$total_revenue = (float)$pdo->query("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_status='paid'")->fetchColumn();
-if ($total_revenue == 0) {
-    $total_revenue = (float)$pdo->query("
+// Gross Revenue calculation from DB, then taking the 5% Admin Commission Cut
+$gross_revenue = (float)$pdo->query("SELECT COALESCE(SUM(amount), 0) FROM payments WHERE payment_status='paid'")->fetchColumn();
+if ($gross_revenue == 0) {
+    $gross_revenue = (float)$pdo->query("
         SELECT COALESCE(SUM(e.registration_fee), 0) 
         FROM registrations r 
         JOIN events e ON r.event_id = e.event_id 
         WHERE r.status = 'approved'
     ")->fetchColumn();
 }
+$total_revenue = $gross_revenue * 0.05; // Admin gets the 5% platform cut
 
 // Pass metrics from DB
 $passes_issued = (int)$pdo->query("SELECT COUNT(*) FROM entry_passes")->fetchColumn();
@@ -382,8 +383,7 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
           display: none !important;
       }
 
-      /* Chart containers: force clipping + relative positioning so canvases
-         can never visually bleed/overlap into neighbouring cards */
+      /* Chart containers */
       .chart-box {
         position: relative;
         overflow: hidden;
@@ -393,7 +393,7 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
         max-width: 100%;
       }
 
-      /* Pagination styling to match theme, incl. disabled / ellipsis items */
+      /* Pagination styling */
       .pagination .page-link {
         border-radius: 8px !important;
         margin: 0 2px;
@@ -415,14 +415,11 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
         cursor: default;
       }
 
-      /* Ensure card footers never collapse/overlap the table above them */
       .main-card .card-footer {
         position: relative;
         z-index: 1;
       }
 
-      /* Keep long content (tables, filter rows) from forcing horizontal
-         overlap on small screens */
       .table-responsive {
         overflow-x: auto;
       }
@@ -441,7 +438,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
         [data-pc-theme="dark"] body { background: var(--evenza-bg) !important; }
         [data-pc-theme="dark"] .pc-container { background: var(--evenza-bg) !important; }
         
-        /* Card Fixes */
         [data-pc-theme="dark"] .card, 
         [data-pc-theme="dark"] .main-card,
         [data-pc-theme="dark"] .stat-card {
@@ -455,7 +451,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
             border-top: 1px solid var(--evenza-border) !important;
         }
         
-        /* Text Colors */
         [data-pc-theme="dark"] .page-title,
         [data-pc-theme="dark"] h2,
         [data-pc-theme="dark"] h5,
@@ -479,7 +474,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
             color: #E6EDF3 !important;
         }
 
-        /* Dropdown Menu Fix */
         [data-pc-theme="dark"] .dropdown-menu {
             background-color: var(--evenza-card) !important;
             border-color: var(--evenza-border) !important;
@@ -493,7 +487,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
             color: #E6EDF3 !important;
         }
 
-        /* Table Fixes */
         [data-pc-theme="dark"] .table {
             --bs-table-bg: transparent !important; 
             color: #E6EDF3 !important; 
@@ -514,7 +507,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
             background-color: rgba(255, 255, 255, 0.04) !important;
         }
         
-        /* Forms & Select options */
         [data-pc-theme="dark"] .form-control,
         [data-pc-theme="dark"] .form-select,
         [data-pc-theme="dark"] .input-group-text {
@@ -535,7 +527,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
             color: #E6EDF3;
         }
 
-        /* Chart Tabs */
         [data-pc-theme="dark"] .chart-tab-btn {
             background-color: #0D1117 !important;
             border-color: var(--evenza-border) !important;
@@ -691,7 +682,7 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
             <div class="card stat-card p-3">
               <div class="d-flex align-items-center justify-content-between">
                 <div>
-                  <span class="text-muted text-uppercase tracking-wide" style="font-size:11px; font-weight:600;">Total Revenue</span>
+                  <span class="text-muted text-uppercase tracking-wide" style="font-size:11px; font-weight:600;">Admin Revenue (5%)</span>
                   <h2 id="kpi-rev-val" class="mb-0 font-bold mt-1" style="color:#198754;">₹<?php echo number_format($total_revenue, 2); ?></h2>
                 </div>
                 <div class="stat-icon icon-success"><i class="bi bi-currency-rupee"></i></div>
@@ -950,7 +941,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
       var chartLine, chartDonut;
       var currentSort = { table: null, col: null, asc: true };
 
-      // Pagination state variables (default page size = 10)
       var regCurrentPage = 1;
       var regPageSize = 10;
       var payCurrentPage = 1;
@@ -964,7 +954,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
         applyFilters();
       });
 
-      // Light Mode Chart.js setup
       Chart.defaults.font.family = "'Open Sans', sans-serif";
       Chart.defaults.color = '#6b7280';
       var primary = '#4f46e5';
@@ -1178,7 +1167,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
         renderPayPagination(totalPages);
       }
 
-      // Builds a compact page list: 1 ... p-1 p p+1 ... last
       function buildPageList(current, total) {
         var pages = [];
         var windowSize = 1;
@@ -1214,10 +1202,8 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
           return li;
         }
 
-        // Prev
         container.appendChild(makeItem('<i class="bi bi-chevron-left"></i>', { disabled: currentPage === 1, page: currentPage - 1 }));
 
-        // Page numbers
         buildPageList(currentPage, totalPages).forEach(function (p) {
           if (p === '...') {
             container.appendChild(makeItem('&hellip;', { disabled: true }));
@@ -1226,7 +1212,6 @@ $solo_pct = round(($solo_count / $total_split) * 100, 1);
           }
         });
 
-        // Next
         container.appendChild(makeItem('<i class="bi bi-chevron-right"></i>', { disabled: currentPage === totalPages, page: currentPage + 1 }));
       }
 

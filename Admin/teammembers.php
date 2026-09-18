@@ -73,7 +73,7 @@ $teams  = $pdo->query("SELECT DISTINCT team_name FROM teams ORDER BY team_name A
 <html lang="en">
 
 <head>
-    <title>Team Members | Evenza Admin</title>
+    <title>Team Members | Eventura Admin</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

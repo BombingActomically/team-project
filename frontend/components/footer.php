@@ -14,7 +14,7 @@
                         <i data-lucide="sparkles" class="w-5 h-5 text-brandSecondary"></i>
                     </span>
                     <span class="text-2xl font-bold tracking-wider font-outfit text-brandSecondary">
-                        EVENTRA
+                        EVENTURA
                     </span>
                 </a>
                 <p class="text-sm text-brandMuted leading-relaxed max-w-sm">
@@ -54,15 +54,15 @@
                 <ul class="space-y-3 text-sm">
                     <li class="flex items-start space-x-2.5 text-brandMuted">
                         <i data-lucide="map-pin" class="w-4 h-4 text-brandPrimary mt-0.5 flex-shrink-0"></i>
-                        <span>EVENTRA Headquarters, BKC Arena, Mumbai 400051</span>
+                        <span>EVENTURA Headquarters, Ring Road, Surat 395007</span>
                     </li>
                     <li class="flex items-center space-x-2.5 text-brandMuted">
                         <i data-lucide="mail" class="w-4 h-4 text-brandPrimary flex-shrink-0"></i>
-                        <span>support@eventra.edu</span>
+                        <span>support@eventura.edu</span>
                     </li>
                     <li class="flex items-center space-x-2.5 text-brandMuted">
                         <i data-lucide="phone" class="w-4 h-4 text-brandPrimary flex-shrink-0"></i>
-                        <span>+91 22 5558 9201</span>
+                        <span>+91 261 5558 9201</span>
                     </li>
                 </ul>
             </div>
@@ -92,7 +92,7 @@
         
         <!-- Copyright Bar -->
         <div class="flex flex-col sm:flex-row items-center justify-between pt-8 text-xs text-brandMuted">
-            <p>&copy; <?php echo date('Y'); ?> EVENTRA. All rights reserved. Designed for Multi-College Event Discovery.</p>
+            <p>&copy; <?php echo date('Y'); ?> EVENTURA. All rights reserved. Designed for Multi-College Event Discovery.</p>
             <div class="flex items-center space-x-6 mt-4 sm:mt-0">
                 <a href="#" class="hover:text-brandSecondary transition-colors">Privacy Policy</a>
                 <a href="#" class="hover:text-brandSecondary transition-colors">Terms of Service</a>

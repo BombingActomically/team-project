@@ -224,7 +224,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
 
 <head>
 
-    <title>Event Categories | Evenza Admin</title>
+    <title>Event Categories | Eventura Admin</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -458,7 +458,7 @@ unset($_SESSION['flash'], $_SESSION['reopen_modal']);
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-4">
                 <div>
                     <h4 class="page-title mb-1">Event Categories</h4>
-                    <p class="page-subtitle mb-3">Manage categories registered on the Evenza platform</p>
+                    <p class="page-subtitle mb-3">Manage categories registered on the Eventura platform</p>
                     <ul class="custom-breadcrumb">
                         <li><a href="Dashboard.php">Home</a></li>
                         <li>Category Management</li>

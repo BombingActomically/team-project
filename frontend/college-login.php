@@ -2,6 +2,7 @@
 // C:\xampp\htdocs\Project2\frontend\college-login.php
 session_start();
 
+// Database Connection
 $host = 'localhost';
 $dbname = 'evenza';
 $username = 'root'; 
@@ -15,26 +16,46 @@ try {
 }
 
 $error_message = '';
+$success_message = isset($_SESSION['register_success']) ? $_SESSION['register_success'] : '';
+unset($_SESSION['register_success']); // Clear message after reading
 
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $email = trim($_POST['email']);
-    $pass = trim($_POST['password']);
+    $email = trim($_POST['email'] ?? '');
+    $pass = trim($_POST['password'] ?? '');
 
-    if (empty($email) || empty($pass)) {
-        $error_message = "Please fill in all required fields.";
+    // --- MANUAL VALIDATION ---
+    if (empty($email)) {
+        $error_message = "Please enter your college email address.";
+    } elseif (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Please enter a valid email address format.";
+    } elseif (empty($pass)) {
+        $error_message = "Please enter your password.";
     } else {
+        // Fetch college data based on email first
         $stmt = $pdo->prepare("SELECT * FROM colleges WHERE email = :email LIMIT 1");
         $stmt->execute(['email' => $email]);
         $college = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($college && ($pass === $college['password'] || password_verify($pass, $college['password']))) {
-            $_SESSION['college_id'] = $college['college_id'];
-            $_SESSION['college_name'] = $college['name'];
-            $_SESSION['college_email'] = $college['email'];
-            $_SESSION['user_role'] = 'college';
+        if ($college) {
+            // Verify password
+            if ($pass === $college['password'] || password_verify($pass, $college['password'])) {
+                
+                // --- Ban / Inactive Check ---
+                if (strtolower($college['status']) !== 'active') {
+                    $error_message = "Access Denied: Your institutional account has been deactivated or suspended by the administrator.";
+                } else {
+                    // Valid and active: Create Session
+                    $_SESSION['college_id'] = $college['college_id'];
+                    $_SESSION['college_name'] = $college['name'];
+                    $_SESSION['college_email'] = $college['email'];
+                    $_SESSION['user_role'] = 'college';
 
-            header("Location: college-dashboard.php");
-            exit();
+                    header("Location: college-dashboard.php");
+                    exit();
+                }
+            } else {
+                $error_message = "Invalid college email or password.";
+            }
         } else {
             $error_message = "Invalid college email or password.";
         }
@@ -81,6 +102,15 @@ include_once 'components/navbar.php';
                 <p class="text-sm text-[var(--text-dim)] mt-1.5">Sign in to manage institutional teams and students.</p>
             </div>
 
+            <!-- Success Notification Banner -->
+            <?php if (!empty($success_message)): ?>
+                <div class="bg-green-100 border border-green-300 text-green-700 px-4 py-3.5 rounded-xl mb-6 text-xs flex items-center gap-2.5 shadow-sm">
+                    <i data-lucide="check-circle" class="w-5 h-5 shrink-0"></i>
+                    <span><?= htmlspecialchars($success_message); ?></span>
+                </div>
+            <?php endif; ?>
+
+            <!-- Error and Ban Notification Banner -->
             <?php if (!empty($error_message)): ?>
                 <div class="bg-red-100 border border-red-300 text-red-700 px-4 py-3.5 rounded-xl mb-6 text-xs flex items-center gap-2.5 shadow-sm">
                     <i data-lucide="alert-circle" class="w-5 h-5 shrink-0"></i>
@@ -88,17 +118,18 @@ include_once 'components/navbar.php';
                 </div>
             <?php endif; ?>
 
+            <!-- Form with manual validation and preserved inputs (no 'required' attributes) -->
             <form method="POST" action="college-login.php" class="space-y-6">
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-widest text-[var(--accent)] mb-2">College Email Address <span class="text-red-500">*</span></label>
-                    <input type="email" name="email" required 
+                    <input type="email" name="email" 
                            class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-xl px-4 py-3.5 focus:outline-none focus:border-[var(--accent)] transition-colors text-sm shadow-inner"
-                           placeholder="engineering@stanford.edu">
+                           placeholder="engineering@college.edu" value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>">
                 </div>
 
                 <div>
                     <label class="block text-xs font-bold uppercase tracking-widest text-[var(--accent)] mb-2">Password <span class="text-red-500">*</span></label>
-                    <input type="password" name="password" required 
+                    <input type="password" name="password" 
                            class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-xl px-4 py-3.5 focus:outline-none focus:border-[var(--accent)] transition-colors text-sm shadow-inner"
                            placeholder="••••••••">
                 </div>
@@ -109,6 +140,18 @@ include_once 'components/navbar.php';
                     </button>
                 </div>
             </form>
+
+            <!-- Registration Link for New Colleges -->
+            <div class="mt-6 text-center text-xs text-[var(--text-dim)] border-t border-[var(--border-soft)] pt-6">
+                Want to register your institution? 
+                <a href="college-register.php" class="font-bold text-[var(--accent)] hover:text-[var(--text)] transition-colors">Register College</a>
+            </div>
+
+            <div class="mt-4 text-center">
+                <a href="../Admin/" class="inline-flex items-center justify-center gap-2 text-[10px] font-bold uppercase tracking-widest text-[var(--accent-dim)] hover:text-[var(--text)] transition-colors px-4 py-3 border border-[var(--border-soft)] hover:border-[var(--border-accent)] rounded-lg w-full bg-[var(--bg-alt)]">
+                    <i data-lucide="shield" class="w-3.5 h-3.5"></i> Admin Portal
+                </a>
+            </div>
 
         </div>
     </div>

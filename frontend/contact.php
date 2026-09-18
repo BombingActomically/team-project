@@ -182,7 +182,7 @@ include_once 'components/navbar.php';
                 <div class="lg:col-span-6 space-y-6">
                     <div>
                         <h2 class="text-xl font-bold font-outfit" style="color: var(--text);">Frequently Asked Questions</h2>
-                        <p class="text-xs mt-1" style="color: var(--text-dim);">Find quick answers to common support questions regarding the Eventra network.</p>
+                        <p class="text-xs mt-1" style="color: var(--text-dim);">Find quick answers to common support questions regarding the Eventura network.</p>
                     </div>
                     
                     <div class="space-y-4">
@@ -202,7 +202,7 @@ include_once 'components/navbar.php';
                                 <i data-lucide="chevron-down" id="faq-2-icon" class="w-4 h-4 transition-transform duration-300" style="color: var(--accent);"></i>
                             </button>
                             <div id="faq-2-content" class="hidden px-6 pb-5 text-xs leading-relaxed pt-3" style="color: var(--text-dim); border-top: 1px solid var(--border-soft);">
-                                Most events and workshops listed on EVENTRA are free to register for all validated college students. Some fests may require nominal on-spot entry fees, which will be highlighted in the event details modal.
+                                Most events and workshops listed on EVENTURA are free to register for all validated college students. Some fests may require nominal on-spot entry fees, which will be highlighted in the event details modal.
                             </div>
                         </div>
                         
@@ -222,7 +222,7 @@ include_once 'components/navbar.php';
                                 <i data-lucide="chevron-down" id="faq-4-icon" class="w-4 h-4 transition-transform duration-300" style="color: var(--accent);"></i>
                             </button>
                             <div id="faq-4-content" class="hidden px-6 pb-5 text-xs leading-relaxed pt-3" style="color: var(--text-dim); border-top: 1px solid var(--border-soft);">
-                                Yes! Any verified college student with a valid student ID card or college roll number can participate in the events, fests, and workshops, even if their specific institution is not yet listing on EVENTRA.
+                                Yes! Any verified college student with a valid student ID card or college roll number can participate in the events, fests, and workshops, even if their specific institution is not yet listing on EVENTURA.
                             </div>
                         </div>
                     </div>

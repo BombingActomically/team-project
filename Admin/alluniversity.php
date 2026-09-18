@@ -643,7 +643,7 @@ unset(
 <html lang="en">
 
 <head>
-    <title>All Universities | Evenza Admin</title>
+    <title>All Universities | Eventura Admin</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -1056,7 +1056,7 @@ unset(
                     </h4>
 
                     <p class="page-subtitle mb-3">
-                        Manage universities registered on the Evenza platform
+                        Manage universities registered on the Eventura platform
                     </p>
 
                     <ul class="custom-breadcrumb">

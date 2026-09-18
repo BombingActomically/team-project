@@ -101,7 +101,7 @@ unset($_SESSION['flash']);
 <html lang="en">
 
 <head>
-    <title>Team Details | Evenza Admin</title>
+    <title>Team Details | Eventura Admin</title>
 
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

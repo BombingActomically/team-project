@@ -21,7 +21,7 @@ $currPage = isset($page_title) ? $page_title : 'home';
                         <i data-lucide="sparkles" class="w-5 h-5" style="color: var(--accent);"></i>
                     </span>
                     <span class="text-2xl font-bold tracking-wider font-outfit" style="color: var(--text);">
-                        EVENTRA
+                        EVENTURA
                     </span>
                 </a>
             </div>

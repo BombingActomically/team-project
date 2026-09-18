@@ -23,23 +23,33 @@ $error_message = '';
 $collegesStmt = $pdo->query("SELECT college_id, name FROM colleges WHERE status = 'active' ORDER BY name ASC");
 $colleges = $collegesStmt->fetchAll(PDO::FETCH_ASSOC);
 
-// 3. Handle Registration Form Submission
+// 3. Handle Registration Form Submission with Strict Manual Validation
 if ($_SERVER["REQUEST_METHOD"] == "POST") {
     
     // Sanitize inputs
-    $name = trim($_POST['name']);
-    $email = trim($_POST['email']);
-    $phone = trim($_POST['phone']);
-    $gender = $_POST['gender'];
-    $semester = $_POST['semester'];
-    $college_id = (int)$_POST['college_id'];
-    $enrollment_no = trim($_POST['enrollment_no']);
-    $pass = $_POST['password'];
-    $pass_confirm = $_POST['confirm_password'];
+    $name = trim($_POST['name'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $phone = trim($_POST['phone'] ?? '');
+    $gender = trim($_POST['gender'] ?? '');
+    $semester = trim($_POST['semester'] ?? '');
+    $college_id = (int)($_POST['college_id'] ?? 0);
+    $enrollment_no = trim($_POST['enrollment_no'] ?? '');
+    $pass = $_POST['password'] ?? '';
+    $pass_confirm = $_POST['confirm_password'] ?? '';
 
-    // Basic Validation
-    if (empty($name) || empty($email) || empty($pass) || empty($college_id) || empty($enrollment_no)) {
-        $error_message = "Please fill in all required fields.";
+    // --- MANUAL VALIDATION CHECKS ---
+    if (empty($name)) {
+        $error_message = "Please enter your full name.";
+    } elseif (empty($email) || !filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        $error_message = "Please enter a valid email address.";
+    } elseif ($college_id <= 0) {
+        $error_message = "Please select a valid college or university.";
+    } elseif (empty($enrollment_no)) {
+        $error_message = "Please enter your enrollment number or ID.";
+    } elseif (empty($pass)) {
+        $error_message = "Please provide a password.";
+    } elseif (strlen($pass) < 6) {
+        $error_message = "Password must be at least 6 characters long.";
     } elseif ($pass !== $pass_confirm) {
         $error_message = "Passwords do not match.";
     } else {
@@ -77,39 +87,46 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
                         if (move_uploaded_file($fileTmpPath, $dest_path)) {
                             $profile_photo_name = $newFileName;
                         }
+                    } else {
+                        $error_message = "Profile photo size must be less than 2MB.";
                     }
+                } else {
+                    $error_message = "Invalid image format. Only JPG, JPEG, and PNG are allowed.";
                 }
             }
 
-            // Hash the password securely
-            $hashed_password = password_hash($pass, PASSWORD_DEFAULT);
-            
-            // Insert into the students table with uploaded profile photo
-            $insertStmt = $pdo->prepare("
-                INSERT INTO students 
-                (college_id, enrollment_no, name, email, password, phone, gender, semester, id_card_image, profile_photo, status, account_status) 
-                VALUES 
-                (:cid, :eno, :name, :email, :pass, :phone, :gender, :sem, 'pending_id.png', :photo, 'pending', 'active')
-            ");
-            
-            $inserted = $insertStmt->execute([
-                'cid' => $college_id,
-                'eno' => $enrollment_no,
-                'name' => $name,
-                'email' => $email,
-                'pass' => $hashed_password,
-                'phone' => $phone,
-                'gender' => $gender,
-                'sem' => $semester,
-                'photo' => $profile_photo_name
-            ]);
+            // Proceed only if no file upload errors occurred
+            if (empty($error_message)) {
+                // Hash the password securely
+                $hashed_password = password_hash($pass, PASSWORD_DEFAULT);
+                
+                // Insert into the students table with uploaded profile photo
+                $insertStmt = $pdo->prepare("
+                    INSERT INTO students 
+                    (college_id, enrollment_no, name, email, password, phone, gender, semester, id_card_image, profile_photo, status, account_status) 
+                    VALUES 
+                    (:cid, :eno, :name, :email, :pass, :phone, :gender, :sem, 'pending_id.png', :photo, 'pending', 'active')
+                ");
+                
+                $inserted = $insertStmt->execute([
+                    'cid' => $college_id,
+                    'eno' => $enrollment_no,
+                    'name' => $name,
+                    'email' => $email,
+                    'pass' => $hashed_password,
+                    'phone' => $phone,
+                    'gender' => $gender,
+                    'sem' => $semester,
+                    'photo' => $profile_photo_name
+                ]);
 
-            if ($inserted) {
-                $_SESSION['register_success'] = "Account created successfully! You can now log in.";
-                header("Location: login.php");
-                exit();
-            } else {
-                $error_message = "An error occurred while creating your account. Please try again.";
+                if ($inserted) {
+                    $_SESSION['register_success'] = "Account created successfully! You can now log in.";
+                    header("Location: login.php");
+                    exit();
+                } else {
+                    $error_message = "An error occurred while creating your account. Please try again.";
+                }
             }
         }
     }
@@ -161,20 +178,20 @@ include_once 'components/navbar.php';
                 </div>
             <?php endif; ?>
 
-            <!-- Added enctype for file uploads -->
+            <!-- Added enctype for file uploads (No 'required' attributes on fields) -->
             <form method="POST" action="register.php" enctype="multipart/form-data" class="space-y-6">
                 
                 <!-- Personal Info Row -->
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">Full Name <span class="text-red-500">*</span></label>
-                        <input type="text" name="name" required 
+                        <input type="text" name="name" 
                                class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--accent)] transition-colors"
                                placeholder="e.g. Karan Patel" value="<?= isset($_POST['name']) ? htmlspecialchars($_POST['name']) : '' ?>">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">Email Address <span class="text-red-500">*</span></label>
-                        <input type="email" name="email" required 
+                        <input type="email" name="email" 
                                class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--accent)] transition-colors"
                                placeholder="student@college.edu" value="<?= isset($_POST['email']) ? htmlspecialchars($_POST['email']) : '' ?>">
                     </div>
@@ -184,7 +201,7 @@ include_once 'components/navbar.php';
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">College / University <span class="text-red-500">*</span></label>
-                        <select name="college_id" required 
+                        <select name="college_id" 
                                 class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--accent)] transition-colors appearance-none cursor-pointer">
                             <option value="" disabled selected>Select College</option>
                             <?php foreach ($colleges as $c): ?>
@@ -196,7 +213,7 @@ include_once 'components/navbar.php';
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">Enrollment No / ID <span class="text-red-500">*</span></label>
-                        <input type="text" name="enrollment_no" required 
+                        <input type="text" name="enrollment_no" 
                                class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--accent)] transition-colors"
                                placeholder="e.g. 23CS012" value="<?= isset($_POST['enrollment_no']) ? htmlspecialchars($_POST['enrollment_no']) : '' ?>">
                     </div>
@@ -225,14 +242,14 @@ include_once 'components/navbar.php';
                         <select name="semester" 
                                 class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--accent)] transition-colors appearance-none cursor-pointer">
                             <option value="" disabled selected>Select</option>
-                            <option value="Semester 1">Semester 1</option>
-                            <option value="Semester 2">Semester 2</option>
-                            <option value="Semester 3">Semester 3</option>
-                            <option value="Semester 4">Semester 4</option>
-                            <option value="Semester 5">Semester 5</option>
-                            <option value="Semester 6">Semester 6</option>
-                            <option value="Semester 7">Semester 7</option>
-                            <option value="Semester 8">Semester 8</option>
+                            <option value="Semester 1" <?= (isset($_POST['semester']) && $_POST['semester'] == 'Semester 1') ? 'selected' : '' ?>>Semester 1</option>
+                            <option value="Semester 2" <?= (isset($_POST['semester']) && $_POST['semester'] == 'Semester 2') ? 'selected' : '' ?>>Semester 2</option>
+                            <option value="Semester 3" <?= (isset($_POST['semester']) && $_POST['semester'] == 'Semester 3') ? 'selected' : '' ?>>Semester 3</option>
+                            <option value="Semester 4" <?= (isset($_POST['semester']) && $_POST['semester'] == 'Semester 4') ? 'selected' : '' ?>>Semester 4</option>
+                            <option value="Semester 5" <?= (isset($_POST['semester']) && $_POST['semester'] == 'Semester 5') ? 'selected' : '' ?>>Semester 5</option>
+                            <option value="Semester 6" <?= (isset($_POST['semester']) && $_POST['semester'] == 'Semester 6') ? 'selected' : '' ?>>Semester 6</option>
+                            <option value="Semester 7" <?= (isset($_POST['semester']) && $_POST['semester'] == 'Semester 7') ? 'selected' : '' ?>>Semester 7</option>
+                            <option value="Semester 8" <?= (isset($_POST['semester']) && $_POST['semester'] == 'Semester 8') ? 'selected' : '' ?>>Semester 8</option>
                         </select>
                     </div>
                 </div>
@@ -249,13 +266,13 @@ include_once 'components/navbar.php';
                 <div class="grid grid-cols-1 md:grid-cols-2 gap-6 pt-2">
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">Password <span class="text-red-500">*</span></label>
-                        <input type="password" name="password" required minlength="6"
+                        <input type="password" name="password" 
                                class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--accent)] transition-colors"
                                placeholder="Create password">
                     </div>
                     <div>
                         <label class="block text-[10px] font-bold uppercase tracking-widest text-[var(--accent)] mb-1.5">Confirm Password <span class="text-red-500">*</span></label>
-                        <input type="password" name="confirm_password" required minlength="6"
+                        <input type="password" name="confirm_password" 
                                class="w-full bg-[var(--surface-hover)] border border-[var(--border-soft)] text-[var(--text)] rounded-lg px-4 py-3 focus:outline-none focus:border-[var(--accent)] transition-colors"
                                placeholder="Repeat password">
                     </div>
