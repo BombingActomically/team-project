@@ -1,0 +1,177 @@
+/* C:\xampp\htdocs\Project2\frontend\assets\css\style.css */
+
+/* Custom scrollbar - Light Mode */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+::-webkit-scrollbar-track {
+    background: #FBF9E4;
+}
+::-webkit-scrollbar-thumb {
+    background: #5B88B2;
+    border: 1px solid rgba(18, 44, 79, 0.1);
+    border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+    background: #122C4F;
+}
+
+/* Base custom classes */
+body {
+    background-color: #FBF9E4;
+    color: #122C4F;
+    font-family: 'Inter', sans-serif;
+    overflow-x: hidden;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Outfit', sans-serif;
+}
+
+/* Tech grid background pattern - Light mode lines */
+.grid-bg {
+    background-image: 
+        linear-gradient(rgba(18, 44, 79, 0.05) 1px, transparent 1px), 
+        linear-gradient(90deg, rgba(18, 44, 79, 0.05) 1px, transparent 1px);
+    background-size: 55px 55px;
+    background-position: center;
+}
+
+/* Glassmorphism utility - Light Mode Overrides */
+.glass-panel {
+    background: #FFFFFF;
+    border: 1px solid rgba(18, 44, 79, 0.12);
+    box-shadow: 0 10px 25px rgba(18, 44, 79, 0.05);
+}
+
+.glass-panel-heavy {
+    background: #FFFFFF;
+    border: 1px solid rgba(18, 44, 79, 0.18);
+    box-shadow: 0 15px 35px rgba(18, 44, 79, 0.1);
+}
+
+.glass-card {
+    background: #FFFFFF;
+    border: 1px solid rgba(18, 44, 79, 0.08);
+    box-shadow: 0 4px 12px rgba(18, 44, 79, 0.03);
+    transition: all 0.3s ease;
+}
+
+.glass-card:hover {
+    background: #FFFFFF;
+    border-color: #5B88B2;
+    box-shadow: 0 10px 25px rgba(18, 44, 79, 0.08);
+    transform: translateY(-2px);
+}
+
+/* Borders */
+.card-border-glow {
+    border: 1px solid rgba(18, 44, 79, 0.12);
+}
+
+/* Override dark mode text-white tags to Midnight dark blue */
+.text-white {
+    color: #122C4F !important;
+}
+
+/* Text glow styles removed for clean light aesthetic */
+.text-glow-ocean {
+    text-shadow: none;
+}
+
+.text-glow-pearl {
+    text-shadow: none;
+}
+
+.glow-ocean {
+    box-shadow: 0 8px 24px rgba(18, 44, 79, 0.05);
+}
+
+.glow-pearl {
+    box-shadow: 0 8px 24px rgba(18, 44, 79, 0.05);
+}
+
+/* Animations */
+@keyframes float {
+    0%, 100% {
+        transform: translateY(0px);
+    }
+    50% {
+        transform: translateY(-6px);
+    }
+}
+
+.animate-float {
+    animation: float 6s ease-in-out infinite;
+}
+
+/* Hover Zoom for Images */
+.zoom-container {
+    overflow: hidden;
+}
+
+.zoom-image {
+    transition: transform 0.4s ease;
+}
+
+.zoom-container:hover .zoom-image {
+    transform: scale(1.05);
+}
+
+/* Custom indicator dots for calendar */
+.calendar-event-day::after {
+    content: '';
+    position: absolute;
+    bottom: 5px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background-color: #5B88B2;
+}
+
+/* Active states for tabs - Solid Midnight */
+.tab-active {
+    background-color: #122C4F !important;
+    color: #FBF9E4 !important;
+    border-color: transparent !important;
+}
+
+/* Button solid text contrasts */
+button.bg-brandSecondary, a.bg-brandSecondary {
+    color: #FBF9E4 !important;
+}
+
+button.bg-brandPrimary, a.bg-brandPrimary {
+    color: #FFFFFF !important;
+}
+
+/* Form input backgrounds for light mode */
+input, select, textarea {
+    background-color: #FFFFFF !important;
+    color: #122C4F !important;
+    border-color: rgba(18, 44, 79, 0.15) !important;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: #5B88B2 !important;
+}
+
+/* Skeleton state */
+@keyframes skeleton-loading {
+    0% {
+        background-color: rgba(18, 44, 79, 0.05);
+    }
+    50% {
+        background-color: rgba(18, 44, 79, 0.12);
+    }
+    100% {
+        background-color: rgba(18, 44, 79, 0.05);
+    }
+}
+
+.skeleton {
+    animation: skeleton-loading 1.5s infinite ease-in-out;
+}
